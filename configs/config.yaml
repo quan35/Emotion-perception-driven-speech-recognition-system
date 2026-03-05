@@ -1,0 +1,69 @@
+audio:
+  sample_rate: 16000
+  max_duration: 5.0      # seconds
+  min_duration: 0.5
+  n_mels: 128
+  n_mfcc: 40
+  hop_length: 512
+  n_fft: 2048
+
+emotion:
+  labels: ["happy", "angry", "sad", "neutral", "fear", "surprise"]
+  label2id:
+    happy: 0
+    angry: 1
+    sad: 2
+    neutral: 3
+    fear: 4
+    surprise: 5
+  num_classes: 6
+
+model:
+  whisper_size: "small"
+  cnn_channels: [32, 64, 128]
+  lstm_hidden: 64
+  lstm_layers: 2
+  attention_dim: 64
+  dropout: 0.3
+  classifier_hidden: 64
+  classifier_dropout: 0.5
+
+training:
+  batch_size: 32
+  epochs: 100
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  patience: 10
+  train_ratio: 0.8
+  val_ratio: 0.1
+  test_ratio: 0.1
+  seed: 42
+
+paths:
+  raw_data: "data/raw"
+  processed_data: "data/processed"
+  features: "data/features"
+  checkpoints: "checkpoints"
+  best_emotion_model: "checkpoints/best_emotion.pth"
+  best_shared_model: "checkpoints/best_shared.pth"
+
+datasets:
+  ravdess:
+    url: "https://zenodo.org/record/1188976"
+    emotions:
+      "01": "neutral"
+      "02": "neutral"  # calm -> neutral
+      "03": "happy"
+      "04": "sad"
+      "05": "angry"
+      "06": "fear"
+      "07": "surprise"  # disgust -> surprise (remap)
+      "08": "surprise"
+  casia:
+    emotions:
+      "surprise": "surprise"
+      "sad": "sad"
+      "neutral": "neutral"
+      "happy": "happy"
+      "fear": "fear"
+      "angry": "angry"
