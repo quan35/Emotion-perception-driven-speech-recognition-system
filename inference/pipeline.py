@@ -70,10 +70,13 @@ class EmotionAwareSpeechPipeline:
     """
     情感感知语音识别流水线。
     整合 ASR + SER，一次调用返回文字 + 情感。
+    支持在 CNN+BiLSTM+Attention 和 Whisper 共享编码器之间动态切换。
     """
 
-    def __init__(self, config=None, emotion_model_path=None,
-                 use_shared_model=False, whisper_size=None):
+    MODEL_CNN = "CNN+BiLSTM+Attention"
+    MODEL_SHARED = "Whisper 共享编码器"
+
+    def __init__(self, config=None, whisper_size=None):
         self.cfg = config or load_config()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.preprocessor = AudioPreprocessor(self.cfg)
@@ -82,16 +85,17 @@ class EmotionAwareSpeechPipeline:
         ws = whisper_size or self.cfg["model"]["whisper_size"]
         self.asr = ASREngine(model_size=ws, device=str(self.device))
 
-        self.use_shared = use_shared_model
-        if use_shared_model:
-            self._load_shared_model()
-        else:
-            self._load_emotion_model(emotion_model_path)
+        self.cnn_model = None
+        self.shared_model = None
+        self.active_model_name = self.MODEL_CNN
 
-    def _load_emotion_model(self, path=None):
+        self._load_cnn_model()
+        self._load_shared_model()
+
+    def _load_cnn_model(self, path=None):
         """加载 CNN+BiLSTM+Attention 情感模型。"""
         path = path or self.cfg["paths"]["best_emotion_model"]
-        self.emotion_model = EmotionRecognizer(
+        self.cnn_model = EmotionRecognizer(
             num_classes=self.cfg["emotion"]["num_classes"],
             n_mels=self.cfg["audio"]["n_mels"],
             cnn_channels=tuple(self.cfg["model"]["cnn_channels"]),
@@ -100,28 +104,33 @@ class EmotionAwareSpeechPipeline:
         )
         if os.path.isfile(path):
             state = torch.load(path, map_location=self.device)
-            self.emotion_model.load_state_dict(state)
-            print(f"已加载情感模型: {path}")
+            self.cnn_model.load_state_dict(state)
+            print(f"已加载 CNN+BiLSTM+Attention 模型: {path}")
         else:
-            print(f"警告: 情感模型文件不存在 ({path})，使用随机权重")
-        self.emotion_model.to(self.device)
-        self.emotion_model.eval()
+            print(f"警告: CNN 模型文件不存在 ({path})，使用随机权重")
+        self.cnn_model.to(self.device)
+        self.cnn_model.eval()
 
     def _load_shared_model(self):
         """加载 Whisper 共享编码器情感模型。"""
         path = self.cfg["paths"]["best_shared_model"]
-        self.emotion_model = WhisperEmotionHead(
+        self.shared_model = WhisperEmotionHead(
             self.asr.get_whisper_model(),
             num_classes=self.cfg["emotion"]["num_classes"],
         ).to(self.device)
 
         if os.path.isfile(path):
             ckpt = torch.load(path, map_location=self.device)
-            self.emotion_model.classifier.load_state_dict(ckpt["classifier_state"])
-            print(f"已加载共享编码器模型: {path}")
+            self.shared_model.classifier.load_state_dict(ckpt["classifier_state"])
+            print(f"已加载 Whisper 共享编码器模型: {path}")
         else:
             print(f"警告: 共享编码器模型不存在 ({path})，使用随机权重")
-        self.emotion_model.eval()
+        self.shared_model.eval()
+
+    def set_model(self, model_name):
+        """切换当前使用的情感识别模型。"""
+        if model_name in (self.MODEL_CNN, self.MODEL_SHARED):
+            self.active_model_name = model_name
 
     def _get_emotion_from_mel(self, audio):
         """使用 CNN+BiLSTM+Attention 模型进行情感识别。"""
@@ -133,7 +142,7 @@ class EmotionAwareSpeechPipeline:
         mel_tensor = torch.from_numpy(mel).float().unsqueeze(0).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
-            probs = self.emotion_model.predict_proba(mel_tensor)
+            probs = self.cnn_model.predict_proba(mel_tensor)
         return probs.cpu().numpy()[0]
 
     def _get_emotion_from_whisper(self, audio_path):
@@ -143,7 +152,7 @@ class EmotionAwareSpeechPipeline:
         mel = whisper.log_mel_spectrogram(audio).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
-            probs = self.emotion_model.predict_proba(mel)
+            probs = self.shared_model.predict_proba(mel)
         return probs.cpu().numpy()[0]
 
     def process(self, audio_input, language=None):
@@ -177,11 +186,9 @@ class EmotionAwareSpeechPipeline:
             return self._process_file(audio_input, language)
 
     def _process_file(self, audio_path, language=None):
-        # ASR
         asr_result = self.asr.transcribe(audio_path, language=language)
 
-        # SER
-        if self.use_shared:
+        if self.active_model_name == self.MODEL_SHARED:
             probs = self._get_emotion_from_whisper(audio_path)
         else:
             audio, _ = load_audio(audio_path, sr=self.cfg["audio"]["sample_rate"])
@@ -202,4 +209,5 @@ class EmotionAwareSpeechPipeline:
             },
             "emotion_color": EMOTION_COLORS[emotion_label],
             "confidence": float(probs[emotion_idx]),
+            "model_used": self.active_model_name,
         }
