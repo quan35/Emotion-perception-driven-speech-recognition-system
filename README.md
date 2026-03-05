@@ -62,9 +62,8 @@ identifier/
 ├── configs/           # 配置文件
 ├── models/            # 模型定义
 ├── preprocessing/     # 数据预处理与特征提取
-├── training/          # 训练与评估脚本
 ├── inference/         # 推理流水线
 ├── ui/                # Gradio 界面
-├── notebooks/         # Colab 训练笔记本
+├── notebooks/         # 训练笔记本
 └── utils/             # 工具函数
 ```
