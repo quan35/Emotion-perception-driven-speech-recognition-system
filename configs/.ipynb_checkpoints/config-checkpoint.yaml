@@ -38,6 +38,10 @@ training:
   val_ratio: 0.1
   test_ratio: 0.1
   seed: 42
+  label_smoothing: 0.1
+  warmup_epochs: 5
+  focal_loss: false
+  focal_gamma: 2.0
 
 paths:
   raw_data: "data/raw"
@@ -60,6 +64,7 @@ datasets:
       "07": "surprise"  # disgust -> surprise (remap)
       "08": "surprise"
   casia:
+    url: "https://www.modelscope.cn/datasets/Westwest/CASIA"
     emotions:
       "surprise": "surprise"
       "sad": "sad"

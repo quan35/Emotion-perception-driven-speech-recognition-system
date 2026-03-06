@@ -64,6 +64,7 @@ datasets:
       "07": "surprise"  # disgust -> surprise (remap)
       "08": "surprise"
   casia:
+    url: "https://www.modelscope.cn/datasets/Westwest/CASIA"
     emotions:
       "surprise": "surprise"
       "sad": "sad"
