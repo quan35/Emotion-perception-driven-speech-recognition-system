@@ -120,11 +120,12 @@ class EmotionDataset(Dataset):
 
 
 class AudioAugmentation:
-    """简单的频谱图数据增强。"""
+    """频谱图数据增强: SpecAugment (时间/频率遮蔽) + 高斯噪声注入。"""
 
-    def __init__(self, time_mask_max=20, freq_mask_max=10):
+    def __init__(self, time_mask_max=20, freq_mask_max=10, noise_std=0.01):
         self.time_mask_max = time_mask_max
         self.freq_mask_max = freq_mask_max
+        self.noise_std = noise_std
 
     def __call__(self, spec):
         spec = spec.copy()
@@ -141,6 +142,11 @@ class AudioAugmentation:
         if f > 0 and n_freq > f:
             f0 = np.random.randint(0, n_freq - f)
             spec[f0:f0 + f, :] = spec.min()
+
+        # 高斯噪声注入
+        if self.noise_std > 0:
+            noise = np.random.randn(*spec.shape).astype(spec.dtype) * self.noise_std
+            spec = spec + noise
 
         return spec
 
