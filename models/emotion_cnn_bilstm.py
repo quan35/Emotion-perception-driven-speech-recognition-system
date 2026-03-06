@@ -2,14 +2,6 @@
 CNN + BiLSTM + Attention 情感识别模型。
 输入: Mel 频谱图 (batch, 1, n_mels, time_steps)
 输出: 情感分类 logits (batch, num_classes)
-
-优化内容:
-  - CNN 残差连接 + Spatial Dropout (Dropout2d)
-  - SE (Squeeze-and-Excitation) 通道注意力
-  - 训练时高斯噪声注入 (仅 training 模式生效)
-  - BiLSTM 后 LayerNorm (稳定 Attention 输入)
-  - 多头注意力 (Multi-Head Attention) 替代单头加性注意力
-  - 显式权重初始化 (Kaiming / Xavier / 正交)
 """
 
 import math
@@ -114,8 +106,14 @@ class _MultiHeadAttention(nn.Module):
         context = torch.matmul(attn, v)              # (B, H, T, d)
         context = context.transpose(1, 2).contiguous().view(B, T, D)  # (B, T, D)
         context = self.out_proj(context)              # (B, T, D)
+        
+        # 加权求和，而不是简单平均
+        weights = attn.sum(dim=1).mean(dim=1) # (B, T)
+        weights = F.softmax(weights, dim=1).unsqueeze(1) # (B, 1, T)
+        
+        weighted_context = torch.bmm(weights, context).squeeze(1) # (B, D)
 
-        return context.mean(dim=1)                    # (B, D) 沿时间维平均
+        return weighted_context                    # (B, D) 沿时间维加权聚合
 
 
 class EmotionRecognizer(nn.Module):
