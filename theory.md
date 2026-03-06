@@ -213,9 +213,11 @@ confidence = max(probs)    # 最大概率值作为置信度
 
 | 项目 | 配置 | 说明 |
 |---|---|---|
-| 损失函数 | CrossEntropyLoss | 多分类标准损失，内含 softmax |
-| 优化器 | Adam (lr=0.001, weight_decay=1e-4) | 自适应学习率，L2 正则化防止过拟合 |
-| 学习率调度 | ReduceLROnPlateau (patience=5, factor=0.5) | 验证损失 5 轮不下降则学习率减半 |
+| 损失函数 | CrossEntropyLoss + Label Smoothing (0.1) | 多分类损失，标签平滑缓解过自信 |
+| 可选损失 | FocalLoss (gamma=2.0) | 类别不平衡时可启用 |
+| 优化器 | AdamW (lr=0.001, weight_decay=1e-4) | 解耦 weight decay，泛化优于 Adam |
+| 学习率预热 | Linear Warmup (5 epochs) | 前 5 轮线性增加学习率至 base_lr |
+| 学习率调度 | ReduceLROnPlateau (patience=5, factor=0.5) | warmup 后启用，验证损失 5 轮不下降则减半 |
 | 早停 | patience=10 | 验证损失 10 轮不下降则停止训练 |
 | 数据划分 | 训练:验证:测试 = 8:1:1 | 随机划分，固定种子 seed=42 保证可复现 |
 | 最大训练轮数 | 100 epochs | 通常在 30-50 轮内收敛 |
@@ -234,16 +236,16 @@ confidence = max(probs)    # 最大概率值作为置信度
 
 ## 12. 优化设计
 
-基于实践经验和相关研究，对原始模型进行了四项针对性优化。优化后的完整数据流为：
+基于实践经验和 SER 领域文献（MS-SENet / CVPR 2018 SE-Net / Interspeech 2020 Label Smoothing 等），对模型进行了多项针对性优化。优化后的完整数据流为：
 
 ```
 输入 Mel 频谱图 (batch, 1, 128, 157)
     ↓ [训练时] 高斯噪声注入 (std=0.01)
-    ↓ 残差 CNN 第1层 (Conv+BN+ReLU + 残差 + Pool + Dropout2d)
+    ↓ 残差 SE-CNN 第1层 (Conv+BN+ReLU → SE → 残差 → Pool → Dropout2d)
 (batch, 32, 64, 78)
-    ↓ 残差 CNN 第2层
+    ↓ 残差 SE-CNN 第2层
 (batch, 64, 32, 39)
-    ↓ 残差 CNN 第3层
+    ↓ 残差 SE-CNN 第3层
 (batch, 128, 16, 19)
     ↓ 维度重排
 (batch, 19, 2048)
@@ -251,7 +253,7 @@ confidence = max(probs)    # 最大概率值作为置信度
 (batch, 19, 128)
     ↓ LayerNorm
 (batch, 19, 128)
-    ↓ Attention 加权聚合
+    ↓ 多头注意力聚合 (4头, scaled dot-product → 时间维平均)
 (batch, 128)
     ↓ 分类头
 (batch, 6)
@@ -329,20 +331,164 @@ BiLSTM 输出 (batch, time, 128) → LayerNorm(128) → Attention
 
 三者配合使用，分别从"信息缺失"和"信息扰动"两个维度增加训练数据的多样性。
 
-### 12.5 优化后的参数量变化
+### 12.5 优化五：Squeeze-and-Excitation (SE) 通道注意力
+
+**问题**：标准 CNN 对所有通道一视同仁，但不同通道对情感识别的贡献是不等的。例如捕获基频变化的通道可能比捕获高频噪声的通道更重要。
+
+**方案**：在每个 `_ResidualCNNBlock` 内部、ReLU 之后、残差加法之前插入 SE 块：
+
+```
+Conv → BN → ReLU → SE → (+残差) → Pool → Dropout2d
+```
+
+SE 块结构：
+
+```
+特征图 (B, C, H, W)
+    ↓ AdaptiveAvgPool2d(1)   → (B, C, 1, 1)  全局平均池化（Squeeze）
+    ↓ Linear(C, C//r) + ReLU → (B, C//r)      降维激活
+    ↓ Linear(C//r, C) + Sigmoid → (B, C)       升维门控（Excitation）
+    ↓ reshape → (B, C, 1, 1)
+    ↓ × 原始特征图                              通道重标定
+```
+
+**原理**：
+- **Squeeze**：全局平均池化将每个通道的空间信息压缩为一个标量，作为该通道的全局描述。
+- **Excitation**：两层全连接网络学习通道间的非线性依赖关系。降维比 `r=4` 控制模型复杂度。Sigmoid 输出 [0, 1] 的门控权重。
+- **重标定**：将学习到的权重逐通道乘回特征图，放大重要通道、抑制无关通道。
+
+**参考文献**：Hu et al., "Squeeze-and-Excitation Networks" (CVPR 2018); MS-SENet 将 SE 应用于 SER 领域，在多个基准上报告 UAR 提升 1.3-1.6%。
+
+### 12.6 优化六：多头注意力 (Multi-Head Attention)
+
+**问题**：原始单头加性注意力只能学习一种"关注模式"。但语音中的情感线索是多维的——节奏变化、音高走向、能量包络各自携带不同的情感信息。单头注意力被迫将所有维度的信息压缩为一组权重，表达能力有限。
+
+**方案**：用 4 头 scaled dot-product attention 替代单头加性注意力：
+
+```
+BiLSTM 输出 (B, T, 128) → LayerNorm
+    ↓ Q = W_q · x,  K = W_k · x,  V = W_v · x    线性投影
+    ↓ 拆分为 4 头, 每头 32 维
+    ↓ Attention(Q, K, V) = softmax(QKᵀ/√d) · V    每头独立计算
+    ↓ 拼接 4 头 → (B, T, 128)
+    ↓ W_out 线性投影 → (B, T, 128)
+    ↓ 时间维平均池化 → (B, 128)                    上下文向量
+```
+
+**原理**：
+- **多头并行**：4 个头各自在 32 维子空间中关注不同的时间模式。例如某头关注能量爆发（愤怒的线索），另一头关注语速变化（焦虑的线索）。
+- **Scaled Dot-Product**：相比加性注意力（Tanh + Linear），点积注意力计算效率更高，且缩放因子 `1/√d` 防止内积过大导致 softmax 退化为 one-hot。
+- **时间维平均**：与单头加性注意力的加权求和不同，多头注意力先在每头内做完整的自注意力变换（每个时间步都被其他步的信息增强），最终取时间维均值作为全局表示。这种做法让每个时间步都融合了全局信息后再聚合，比直接加权求和更具表达力。
+- **Dropout**：注意力权重上施加 Dropout(0.1) 防止过拟合，在小数据集上尤为重要。
+
+**注意**：`num_heads=4` 是针对小数据集（约 1440-3000 样本）的保守选择。头数过多（如 8、16）会增加过拟合风险。
+
+### 12.7 优化七：显式权重初始化
+
+**问题**：PyTorch 默认使用 `uniform` 初始化（Lecun uniform），对 ReLU 激活网络不是最优。不当的初始化可能导致训练初期梯度爆炸/消失，尤其是深层 LSTM 和多层 CNN 的组合中。
+
+**方案**：在模型构造函数末尾调用 `self.apply(self._init_weights)`，对不同类型的层使用针对性策略：
+
+| 层类型 | 初始化策略 | 依据 |
+|---|---|---|
+| Conv2d 权重 | Kaiming Normal (fan_out, relu) | He et al., 2015：适配 ReLU 后方差不缩减 |
+| Conv2d 偏置 | 零初始化 | 标准做法 |
+| Linear 权重 | Xavier Uniform | Glorot & Bengio, 2010：适配 Sigmoid/Tanh |
+| Linear 偏置 | 零初始化 | 标准做法 |
+| LSTM input-hidden 权重 | Xavier Uniform | 与 Linear 层一致 |
+| LSTM hidden-hidden 权重 | 正交初始化 | Saxe et al., 2014：缓解循环梯度消失 |
+| LSTM 偏置 | 零初始化 | 标准做法 |
+
+**原理**：
+- **Kaiming 初始化**：考虑 ReLU 会将约一半的激活值置零，因此将权重方差乘以 2 来补偿，保持各层激活值的方差稳定。`fan_out` 模式确保反向传播时梯度方差稳定。
+- **正交初始化**：LSTM 的循环权重矩阵若为正交矩阵，则其特征值的模均为 1，确保梯度在时间步间传播时既不指数增长也不指数衰减。
+
+### 12.8 优化八：Label Smoothing
+
+**问题**：标准 one-hot 标签（如 `[0, 0, 1, 0, 0, 0]`）要求模型输出无限大的 logit 差值才能完全匹配，导致模型倾向于产生过度自信的预测。这不仅降低了泛化能力，还使得模型的置信度校准（calibration）变差。
+
+**方案**：在 CrossEntropyLoss 中启用 `label_smoothing=0.1`。
+
+**原理**：Label Smoothing 将目标分布从 one-hot 改为：
+
+```
+y_smooth = (1 - ε) · y_onehot + ε / K
+
+其中 ε = 0.1, K = 6 (类别数)
+```
+
+例如 `[0, 0, 1, 0, 0, 0]` 变为 `[0.017, 0.017, 0.917, 0.017, 0.017, 0.017]`。
+
+效果：
+- 模型不再被迫输出极端概率，学到的决策边界更平滑。
+- 等价于在损失函数中加入了对模型输出分布的 KL 散度正则项。
+- Interspeech 2020 在 IEMOCAP 数据集上报告使用 Label Smoothing 后准确率提升约 3%。
+
+### 12.9 优化九：AdamW + 学习率 Warmup
+
+**问题**：
+1. Adam 优化器中 weight decay 与自适应学习率耦合，实际正则效果不如预期。
+2. 训练初期模型参数处于随机状态，此时使用完整学习率可能导致参数更新过大、偏离良好的收敛区域。
+
+**方案**：
+1. 将 Adam 替换为 AdamW。
+2. 在前 5 个 epoch 中线性增加学习率，warmup 结束后再启用 ReduceLROnPlateau 调度。
+
+```
+学习率变化:
+
+     warmup 阶段           正常训练阶段
+     (线性增加)            (ReduceLROnPlateau)
+        ╱‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾╲
+       ╱                       ╲
+      ╱                         ╲___
+     ╱                              ╲___
+    ╱                                    ╲
+  ─┤──────┤────────────────────────────────→ epoch
+   0      5                              100
+```
+
+**原理**：
+- **AdamW**（Loshchilov & Hutter, 2019）：将 weight decay 从梯度更新中分离。在 Adam 中，weight decay 通过 L2 正则项加入梯度计算，被自适应学习率缩放；AdamW 直接在参数更新后衰减参数值，正则效果更一致。
+- **Linear Warmup**：前 5 个 epoch 学习率从 `lr/5` 线性增至 `lr`。对包含 LSTM 的模型尤为重要：LSTM 的循环计算对学习率敏感，初始阶段给予较小的学习率让隐状态建立有意义的时序表示后，再用完整学习率进行精细调整。
+- warmup 期间不触发 ReduceLROnPlateau 调度器，避免 warmup 尚未完成就被误触降低学习率。
+
+### 12.10 优化十：Focal Loss（可选）
+
+**问题**：当数据集存在类别不平衡时（如 RAVDESS 中 neutral 样本远多于 surprise），标准 CrossEntropy 对每个样本的损失贡献相同，导致模型偏向多数类、对少数类识别率低。
+
+**方案**：提供 Focal Loss 作为可选的损失函数（通过配置文件 `training.focal_loss: true` 启用）。
+
+```python
+FL(p_t) = -(1 - p_t)^γ · log(p_t)
+```
+
+其中 `p_t` 为目标类的预测概率，`γ = 2.0`。
+
+**原理**（Lin et al., "Focal Loss for Dense Object Detection", 2017）：
+- 当样本被正确分类且概率高时（如 `p_t = 0.9`），调制因子 `(1 - 0.9)^2 = 0.01` 将损失缩小 100 倍。
+- 当样本被错分或概率低时（如 `p_t = 0.1`），调制因子 `(1 - 0.1)^2 = 0.81` 几乎不缩减。
+- 效果：模型的训练信号主要来自"难分"样本，自动关注少数类和模糊边界样本。
+- 与 Label Smoothing 可组合使用：Focal Loss 实现中同样支持 `label_smoothing` 参数。
+
+**使用建议**：在类别基本均衡时（如 RAVDESS + CASIA 混合后），CrossEntropy + Label Smoothing 已足够。仅当确认存在明显不平衡时启用 Focal Loss。
+
+### 12.11 优化后的参数量变化
 
 | 新增模块 | 新增参数量 |
 |---|---|
-| 残差 shortcut 1×1 Conv (1→32) + BN | 32 + 64 = 96 |
-| 残差 shortcut 1×1 Conv (32→64) + BN | 2,048 + 128 = 2,176 |
-| 残差 shortcut 1×1 Conv (64→128) + BN | 8,192 + 256 = 8,448 |
+| 残差 shortcut 1×1 Conv ×3 + BN | ~11K |
+| SE 块 ×3 (reduction=4) | SE(32): 32×8+8×32 ≈ 512; SE(64): 64×16+16×64 ≈ 2K; SE(128): 128×32+32×128 ≈ 8K → **约 11K** |
+| 多头注意力 (4头, W_q/W_k/W_v/W_out) | 4 × (128×128) + 128×128 ≈ **82K** |
 | LayerNorm(128) | 256 |
-| **新增合计** | **约 11K** |
+| **新增合计** | **约 104K** |
 
-优化后总参数约 **1.30M**（增加不到 1%），模型仍属轻量级，训练速度几乎不受影响。
+优化后总参数约 **1.39M**（增加约 8%），模型仍属轻量级，训练速度几乎不受影响。
 
-### 12.6 接口兼容性
+### 12.12 接口兼容性
 
-新增的构造参数 `cnn_dropout=0.1` 和 `noise_std=0.01` 均有默认值，所有调用方（`inference/pipeline.py`、`notebooks/03_train_emotion.ipynb`）无需修改即可使用优化后的模型。`forward()` 的输入输出形状完全不变。
+所有新增构造参数（`se_reduction=4`、`num_heads=4`、`attn_dropout=0.1`）均有默认值，外部调用方（`inference/pipeline.py`、`notebooks/03_train_emotion.ipynb`）无需修改模型实例化代码。`forward()` 的输入输出形状完全不变。
 
-**注意**：由于模型结构发生了变化（新增残差 shortcut 层和 LayerNorm），旧的权重文件 `best_emotion.pth` 无法直接加载到优化后的模型中，需要重新训练。
+训练策略的变更（AdamW、Warmup、Label Smoothing、Focal Loss）仅影响 `notebooks/03_train_emotion.ipynb` 的训练逻辑和 `configs/config.yaml` 的配置参数。
+
+**注意**：由于模型结构发生了变化（新增 SE 块、多头注意力、权重初始化策略），旧的权重文件 `best_emotion.pth` 无法直接加载到优化后的模型中，需要重新训练。不需要重新提取特征（Mel 频谱图格式未变）。
