@@ -163,7 +163,7 @@ if __name__ == "__main__":
     processed = cfg["paths"]["processed_data"]
     features = cfg["paths"]["features"]
 
-    for subset in ("ravdess", "casia"):
+    for subset in ("ravdess", "casia", "tess", "esd"):
         subset_dir = os.path.join(processed, subset)
         if os.path.isdir(subset_dir):
             extractor.extract_dataset(subset_dir, os.path.join(features, subset))

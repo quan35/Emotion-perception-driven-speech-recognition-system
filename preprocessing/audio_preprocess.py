@@ -152,6 +152,75 @@ def organize_casia(raw_dir, output_dir, emotion_map):
     return count
 
 
+def organize_tess(raw_dir, output_dir, emotion_map):
+    """
+    将 TESS 数据集按情感标签重新组织。
+    TESS 结构: {speaker_emotion}/ 下有 {speaker}_{word}_{emotion}.wav
+    文件夹名形如 OAF_angry, YAF_happy 等，情感从文件夹名中提取。
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    count = 0
+    for folder in os.listdir(raw_dir):
+        folder_path = os.path.join(raw_dir, folder)
+        if not os.path.isdir(folder_path):
+            continue
+
+        parts = folder.split("_", 1)
+        emotion_key = parts[1].lower() if len(parts) > 1 else folder.lower()
+
+        label = emotion_map.get(emotion_key)
+        if label is None:
+            label = emotion_map.get(emotion_key.replace(" ", "_"))
+        if label is None:
+            continue
+
+        dest_dir = os.path.join(output_dir, label)
+        os.makedirs(dest_dir, exist_ok=True)
+
+        for filepath in glob.glob(os.path.join(folder_path, "*.wav")):
+            basename = os.path.basename(filepath)
+            dest = os.path.join(dest_dir, f"tess_{basename}")
+            audio, sr = load_audio(filepath)
+            save_audio(audio, dest, sr=sr)
+            count += 1
+    print(f"TESS 整理完成: {count} 个文件")
+    return count
+
+
+def organize_esd(raw_dir, output_dir, emotion_map):
+    """
+    将 ESD 数据集按情感标签重新组织。
+    ESD 结构: {speaker_id}/{emotion_name}/{####}.wav
+    中文说话人编号 0011-0020，英文说话人编号 0001-0010。
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    count = 0
+    for filepath in glob.glob(os.path.join(raw_dir, "**", "*.wav"), recursive=True):
+        parts = os.path.normpath(filepath).split(os.sep)
+        emotion_dir_name = parts[-2] if len(parts) >= 2 else None
+        speaker_id = parts[-3] if len(parts) >= 3 else "unknown"
+
+        if emotion_dir_name is None:
+            continue
+
+        label = emotion_map.get(emotion_dir_name)
+        if label is None:
+            label = emotion_map.get(emotion_dir_name.capitalize())
+        if label is None:
+            continue
+
+        dest_dir = os.path.join(output_dir, label)
+        os.makedirs(dest_dir, exist_ok=True)
+        basename = os.path.basename(filepath)
+        dest = os.path.join(dest_dir, f"esd_{speaker_id}_{basename}")
+
+        audio, sr = load_audio(filepath)
+        save_audio(audio, dest, sr=sr)
+        count += 1
+    print(f"ESD 整理完成: {count} 个文件")
+    return count
+
+
 if __name__ == "__main__":
     cfg = load_config()
     preprocessor = AudioPreprocessor(cfg)
@@ -178,5 +247,25 @@ if __name__ == "__main__":
             cfg["datasets"]["casia"]["emotions"],
         )
         preprocessor.process_dataset(casia_organized, os.path.join(processed, "casia"))
+
+    tess_raw = os.path.join(raw, "tess")
+    if os.path.isdir(tess_raw):
+        tess_organized = os.path.join(raw, "tess_organized")
+        organize_tess(
+            tess_raw,
+            tess_organized,
+            cfg["datasets"]["tess"]["emotions"],
+        )
+        preprocessor.process_dataset(tess_organized, os.path.join(processed, "tess"))
+
+    esd_raw = os.path.join(raw, "esd")
+    if os.path.isdir(esd_raw):
+        esd_organized = os.path.join(raw, "esd_organized")
+        organize_esd(
+            esd_raw,
+            esd_organized,
+            cfg["datasets"]["esd"]["emotions"],
+        )
+        preprocessor.process_dataset(esd_organized, os.path.join(processed, "esd"))
 
     print("全部预处理完成。")
