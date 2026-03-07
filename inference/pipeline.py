@@ -101,6 +101,9 @@ class EmotionAwareSpeechPipeline:
             cnn_channels=tuple(self.cfg["model"]["cnn_channels"]),
             lstm_hidden=self.cfg["model"]["lstm_hidden"],
             lstm_layers=self.cfg["model"]["lstm_layers"],
+            lstm_dropout=self.cfg["model"].get("dropout", 0.3),
+            cls_hidden=self.cfg["model"].get("classifier_hidden", 64),
+            cls_dropout=self.cfg["model"].get("classifier_dropout", 0.5),
         )
         if os.path.isfile(path):
             state = torch.load(path, map_location=self.device)

@@ -21,25 +21,25 @@ emotion:
 model:
   whisper_size: "small"
   cnn_channels: [32, 64, 128]
-  lstm_hidden: 64
+  lstm_hidden: 128
   lstm_layers: 2
   attention_dim: 64
-  dropout: 0.3
-  classifier_hidden: 64
-  classifier_dropout: 0.5
+  dropout: 0.1
+  classifier_hidden: 128
+  classifier_dropout: 0.2
 
 training:
   batch_size: 32
   epochs: 100
-  learning_rate: 0.001
-  weight_decay: 0.0001
-  patience: 10
+  learning_rate: 0.0005
+  weight_decay: 0.00001
+  patience: 15
   train_ratio: 0.8
   val_ratio: 0.1
   test_ratio: 0.1
   seed: 42
-  label_smoothing: 0.1
-  warmup_epochs: 5
+  label_smoothing: 0.0
+  warmup_epochs: 3
   focal_loss: false
   focal_gamma: 2.0
 
