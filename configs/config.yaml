@@ -1,6 +1,6 @@
 audio:
   sample_rate: 16000
-  max_duration: 5.0      # seconds
+  max_duration: 5.0 # seconds
   min_duration: 0.5
   n_mels: 128
   n_mfcc: 40
@@ -56,12 +56,12 @@ datasets:
     url: "https://zenodo.org/record/1188976"
     emotions:
       "01": "neutral"
-      "02": "neutral"  # calm -> neutral
+      "02": "neutral" # calm -> neutral
       "03": "happy"
       "04": "sad"
       "05": "angry"
       "06": "fear"
-      "07": "surprise"  # disgust -> surprise (remap)
+      "07": "surprise" # disgust -> surprise (remap)
       "08": "surprise"
   casia:
     url: "https://www.modelscope.cn/datasets/Westwest/CASIA"
@@ -72,3 +72,22 @@ datasets:
       "happy": "happy"
       "fear": "fear"
       "angry": "angry"
+  tess:
+    url: "https://www.kaggle.com/datasets/ejlok1/toronto-emotional-speech-set-tess"
+    emotions:
+      "angry": "angry"
+      "disgust": "surprise"
+      "fear": "fear"
+      "happy": "happy"
+      "neutral": "neutral"
+      "pleasant_surprise": "surprise"
+      "ps": "surprise"
+      "sad": "sad"
+  esd:
+    url: "https://github.com/HLTSingapore/Emotional-Speech-Data"
+    emotions:
+      "Angry": "angry"
+      "Happy": "happy"
+      "Neutral": "neutral"
+      "Sad": "sad"
+      "Surprise": "surprise"
