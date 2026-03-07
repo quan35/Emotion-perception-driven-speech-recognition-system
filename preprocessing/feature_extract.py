@@ -114,6 +114,11 @@ class EmotionDataset(Dataset):
         if self.transform:
             feat = self.transform(feat)
 
+        mean = feat.mean()
+        std = feat.std()
+        if std > 0:
+            feat = (feat - mean) / std
+
         # (1, n_mels, time_steps) -- 单通道
         feat_tensor = torch.from_numpy(feat).unsqueeze(0)
         return feat_tensor, label
