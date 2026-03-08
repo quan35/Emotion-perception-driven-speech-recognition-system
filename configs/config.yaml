@@ -29,7 +29,10 @@ model:
   classifier_dropout: 0.2
 
 training:
-  batch_size: 32
+  batch_size: 256
+  whisper_feature_batch_size: 64
+  whisper_feature_num_workers: 8
+  whisper_feature_prefetch_factor: 2
   epochs: 100
   learning_rate: 0.0005
   weight_decay: 0.00001
