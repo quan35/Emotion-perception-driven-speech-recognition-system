@@ -85,10 +85,12 @@ flowchart LR
  
 代码中支持多个公开数据集（均为 **.wav** 音频），并在 `configs/config.yaml` 中维护情感目录/编码映射：
 
- - RAVDESS
- - CASIA
- - TESS
- - ESD
+ - RAVDESS   https://zenodo.org/record/1188976
+ - CASIA     https://www.modelscope.cn/datasets/Westwest/CASIA
+ - TESS      https://www.kaggle.com/datasets/ejlok1/toronto-emotional-speech-set-tess
+ - ESD       https://github.com/HLTSingapore/Emotional-Speech-Data
+
+* 数据集位于项目文件夹之外，通过软链接接入
 
 **RAVDESS** — 放入 `data/raw/ravdess/`，脚本会自动按文件名中的情感编码整理：
 
@@ -126,8 +128,9 @@ data/raw/casia/
  ## 运行环境
  
  ```bash
- Python >= 3.10（项目开发使用 Python 3.12）
- PyTorch >= 2.0（GPU 可选，自动检测 CUDA）
+ PyTorch  2.3.0
+ Python  3.12(ubuntu22.04)
+ CUDA  12.1
  ```
 
 依赖版本以 `requirements.txt` 为准。
@@ -154,8 +157,8 @@ data/raw/casia/
 
 运行提示：
 
- - 第 2 步会在 `data/raw/` 下生成 `*_organized` 目录，并将预处理后的音频输出到 `data/processed/`。
- - 第 3 步会将特征输出到 `data/features/{dataset}/mel|mfcc/`。
+ - `预处理` 会在 `data/raw/` 下生成 `*_organized` 目录，并将预处理后的音频输出到 `data/processed/`。
+ - `提取特征` 会将特征输出到 `data/features/{dataset}/mel|mfcc/`。
  - 若 `checkpoints/best_emotion.pth` 或 `checkpoints/best_shared.pth` 不存在，界面仍可启动，但情感模型会使用随机权重，结果不具备参考意义。
 
 ## 常见问题与排障（Troubleshooting）
