@@ -87,7 +87,7 @@ class _MultiHeadAttention(nn.Module):
         self.out_proj = nn.Linear(embed_dim, embed_dim)
         self.attn_dropout = nn.Dropout(dropout)
 
-    def forward(self, x):
+    def forward(self, x, return_attn=False):
         """
         x: (batch, time, embed_dim)
         返回: (batch, embed_dim) — 聚合后的上下文向量
@@ -111,9 +111,11 @@ class _MultiHeadAttention(nn.Module):
         weights = attn.sum(dim=1).mean(dim=1) # (B, T)
         weights = F.softmax(weights, dim=1).unsqueeze(1) # (B, 1, T)
         
-        weighted_context = torch.bmm(weights, context).squeeze(1) # (B, D)
+        weighted_context = torch.bmm(weights, context).squeeze(1)
 
-        return weighted_context                    # (B, D) 沿时间维加权聚合
+        if return_attn:
+            return weighted_context, attn, weights.squeeze(1)
+        return weighted_context
 
 
 class EmotionRecognizer(nn.Module):
@@ -215,6 +217,40 @@ class EmotionRecognizer(nn.Module):
 
         logits = self.classifier(context)
         return logits
+
+    def forward_with_intermediates(self, x, return_attn=True):
+        if self.training and self.noise_std > 0:
+            x = x + torch.randn_like(x) * self.noise_std
+
+        out = x
+        for block in self.cnn_blocks:
+            out = block(out)
+        cnn_out = out
+        batch, channels, freq, time = out.shape
+
+        out = out.permute(0, 3, 1, 2).contiguous()
+        out = out.view(batch, time, channels * freq)
+
+        lstm_out, _ = self.bilstm(out)
+        ln_out = self.ln(lstm_out)
+
+        if return_attn:
+            context, attn, time_weights = self.attention(ln_out, return_attn=True)
+        else:
+            context = self.attention(ln_out)
+            attn = None
+            time_weights = None
+
+        logits = self.classifier(context)
+        return {
+            "cnn_out": cnn_out,
+            "lstm_out": lstm_out,
+            "ln_out": ln_out,
+            "context": context,
+            "attn": attn,
+            "time_weights": time_weights,
+            "logits": logits,
+        }
 
     def predict_proba(self, x):
         """返回 softmax 概率分布。"""

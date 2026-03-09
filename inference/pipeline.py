@@ -142,6 +142,10 @@ class EmotionAwareSpeechPipeline:
         audio = pad_or_trim(audio, target_len)
 
         mel = self.feature_extractor.extract_mel(audio)
+        mean = mel.mean()
+        std = mel.std()
+        if std > 0:
+            mel = (mel - mean) / std
         mel_tensor = torch.from_numpy(mel).float().unsqueeze(0).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
@@ -194,8 +198,10 @@ class EmotionAwareSpeechPipeline:
         if self.active_model_name == self.MODEL_SHARED:
             probs = self._get_emotion_from_whisper(audio_path)
         else:
-            audio, _ = load_audio(audio_path, sr=self.cfg["audio"]["sample_rate"])
-            audio = self.preprocessor.denoise(audio)
+            audio = self.preprocessor.process_single(audio_path)
+            if audio is None:
+                audio, _ = load_audio(audio_path, sr=self.cfg["audio"]["sample_rate"])
+                audio = self.preprocessor.normalize(audio)
             probs = self._get_emotion_from_mel(audio)
 
         emotion_idx = int(np.argmax(probs))
