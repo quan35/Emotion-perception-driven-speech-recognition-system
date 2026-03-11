@@ -231,13 +231,17 @@ class EmotionAwareSpeechPipeline:
         if self.active_model_name == self.MODEL_SHARED:
             probs = self._get_emotion_from_whisper(audio_path)
         else:
-            audio = self.preprocessor.process_single(audio_path)
+            sr = self.cfg["audio"]["sample_rate"]
+            audio, _ = load_audio(audio_path, sr=sr)
+            audio = self.preprocessor.remove_silence(audio)
+            min_samples = int(sr * self.cfg["audio"]["min_duration"])
+            if len(audio) < min_samples:
+                audio, _ = load_audio(audio_path, sr=sr)
+            audio = self.preprocessor.normalize(audio)
+            audio = pad_or_trim(audio, int(sr * self.cfg["audio"]["max_duration"]))
             # #region agent log
-            _dbg("pipeline.py:_process_file", "process_single_result", {"returned_none": audio is None, "audio_len": len(audio) if audio is not None else 0}, hyp="B")
+            _dbg("pipeline.py:_process_file", "preprocess_result", {"audio_len": len(audio), "audio_min": float(np.min(audio)), "audio_max": float(np.max(audio))}, hyp="B")
             # #endregion
-            if audio is None:
-                audio, _ = load_audio(audio_path, sr=self.cfg["audio"]["sample_rate"])
-                audio = self.preprocessor.normalize(audio)
             probs = self._get_emotion_from_mel(audio)
 
         emotion_idx = int(np.argmax(probs))
