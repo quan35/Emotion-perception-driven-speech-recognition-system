@@ -6,19 +6,10 @@
 import os
 import sys
 import tempfile
-import json
-import time
 import numpy as np
 import torch
 import whisper
 import librosa
-
-# #region agent log
-_DBG_LOG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "debug-5a4602.log")
-def _dbg(loc, msg, data=None, hyp=""):
-    with open(_DBG_LOG, "a", encoding="utf-8") as f:
-        f.write(json.dumps({"sessionId":"5a4602","location":loc,"message":msg,"data":data or {},"hypothesisId":hyp,"timestamp":int(time.time()*1000)}) + "\n")
-# #endregion
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.audio_utils import (
@@ -114,16 +105,8 @@ class EmotionAwareSpeechPipeline:
             cls_hidden=self.cfg["model"].get("classifier_hidden", 64),
             cls_dropout=self.cfg["model"].get("classifier_dropout", 0.5),
         )
-        # #region agent log
-        _dbg("pipeline.py:_load_cnn_model", "model_load_attempt", {"path": path, "exists": os.path.isfile(path)}, hyp="A")
-        # #endregion
         if os.path.isfile(path):
             state = torch.load(path, map_location=self.device)
-            # #region agent log
-            model_keys = set(self.cnn_model.state_dict().keys())
-            ckpt_keys = set(state.keys())
-            _dbg("pipeline.py:_load_cnn_model", "key_match", {"model_key_count": len(model_keys), "ckpt_key_count": len(ckpt_keys), "missing_in_ckpt": list(model_keys - ckpt_keys)[:5], "extra_in_ckpt": list(ckpt_keys - model_keys)[:5]}, hyp="A")
-            # #endregion
             self.cnn_model.load_state_dict(state)
             print(f"已加载 CNN+BiLSTM+Attention 模型: {path}")
         else:
@@ -158,32 +141,16 @@ class EmotionAwareSpeechPipeline:
         target_len = int(sr * self.cfg["audio"]["max_duration"])
         audio = pad_or_trim(audio, target_len)
 
-        # #region agent log
-        _dbg("pipeline.py:_get_emotion_from_mel", "audio_stats", {"shape": list(audio.shape), "dtype": str(audio.dtype), "min": float(np.min(audio)), "max": float(np.max(audio)), "mean": float(np.mean(audio)), "std": float(np.std(audio)), "nonzero_ratio": float(np.count_nonzero(audio) / len(audio))}, hyp="D")
-        # #endregion
-
         mel = self.feature_extractor.extract_mel(audio)
         mean = mel.mean()
         std = mel.std()
-        # #region agent log
-        _dbg("pipeline.py:_get_emotion_from_mel", "mel_before_norm", {"shape": list(mel.shape), "min": float(np.min(mel)), "max": float(np.max(mel)), "mean": float(mean), "std": float(std)}, hyp="C")
-        # #endregion
         if std > 0:
             mel = (mel - mean) / std
         mel_tensor = torch.from_numpy(mel).float().unsqueeze(0).unsqueeze(0).to(self.device)
 
-        # #region agent log
-        _dbg("pipeline.py:_get_emotion_from_mel", "tensor_stats", {"shape": list(mel_tensor.shape), "min": float(mel_tensor.min()), "max": float(mel_tensor.max())}, hyp="D")
-        # #endregion
-
         with torch.no_grad():
             probs = self.cnn_model.predict_proba(mel_tensor)
-        prob_np = probs.cpu().numpy()[0]
-        # #region agent log
-        prob_dict = {EMOTION_LABELS[i]: float(prob_np[i]) for i in range(len(prob_np))}
-        _dbg("pipeline.py:_get_emotion_from_mel", "model_output", {"probs": prob_dict, "predicted": EMOTION_LABELS[int(np.argmax(prob_np))], "max_conf": float(np.max(prob_np))}, hyp="E")
-        # #endregion
-        return prob_np
+        return probs.cpu().numpy()[0]
 
     def _get_emotion_from_whisper(self, audio_path):
         """使用 Whisper 共享编码器模型进行情感识别。"""
@@ -239,9 +206,6 @@ class EmotionAwareSpeechPipeline:
                 audio, _ = load_audio(audio_path, sr=sr)
             audio = self.preprocessor.normalize(audio)
             audio = pad_or_trim(audio, int(sr * self.cfg["audio"]["max_duration"]))
-            # #region agent log
-            _dbg("pipeline.py:_process_file", "preprocess_result", {"audio_len": len(audio), "audio_min": float(np.min(audio)), "audio_max": float(np.max(audio))}, hyp="B")
-            # #endregion
             probs = self._get_emotion_from_mel(audio)
 
         emotion_idx = int(np.argmax(probs))
