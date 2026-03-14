@@ -224,7 +224,7 @@ def create_app():
         gr.Markdown(
             "---\n"
             "**毕业设计** | 情感类别: 高兴·愤怒·悲伤·中性·恐惧·惊讶 | "
-            "ASR: OpenAI Whisper | SER: CNN+BiLSTM+Attention"
+            "ASR: OpenAI Whisper | SER: CNN+BiLSTM+Attention   Whisper 共享编码器"
         )
 
     return app

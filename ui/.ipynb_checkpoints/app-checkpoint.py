@@ -22,6 +22,11 @@ cfg = load_config()
 pipeline = None
 emotion_history = []
 
+MODEL_CHOICES = [
+    EmotionAwareSpeechPipeline.MODEL_CNN,
+    EmotionAwareSpeechPipeline.MODEL_SHARED,
+]
+
 
 def get_pipeline():
     global pipeline
@@ -30,23 +35,26 @@ def get_pipeline():
     return pipeline
 
 
-def process_audio(audio_input):
+def process_audio(audio_input, model_choice):
     """
     处理音频输入（来自录音或文件上传）。
-    Gradio audio 组件返回 (sample_rate, numpy_array) 或文件路径。
+    model_choice: 选择使用的情感识别模型。
     """
     global emotion_history
 
+    empty_result = (
+        "<p style='color:#999;padding:20px;'>请录音或上传音频文件</p>",
+        create_radar_chart([0] * 6),
+        None,
+        None,
+        create_emotion_history_chart([]),
+    )
+
     if audio_input is None:
-        return (
-            "<p style='color:#999;padding:20px;'>请录音或上传音频文件</p>",
-            create_radar_chart([0] * 6),
-            None,
-            None,
-            create_emotion_history_chart([]),
-        )
+        return empty_result
 
     pipe = get_pipeline()
+    pipe.set_model(model_choice)
 
     if isinstance(audio_input, tuple):
         sr, audio_array = audio_input
@@ -65,7 +73,9 @@ def process_audio(audio_input):
         result = pipe.process(audio_input)
         display_audio, display_sr = load_audio(audio_input, sr=16000)
 
-    text_html = create_emotion_text_html(
+    model_tag = f'<span style="display:inline-block;background:#eef;color:#446;padding:2px 8px;border-radius:4px;font-size:0.8em;margin-bottom:6px;">模型: {result["model_used"]}</span><br/>'
+
+    text_html = model_tag + create_emotion_text_html(
         text=result["text"],
         emotion=result["emotion"],
         emotion_zh=result["emotion_zh"],
@@ -177,6 +187,13 @@ def create_app():
                     type="filepath",
                     label="上传音频文件",
                 )
+                gr.Markdown("### 情感识别模型")
+                model_selector = gr.Radio(
+                    choices=MODEL_CHOICES,
+                    value=MODEL_CHOICES[0],
+                    label="选择模型",
+                    info="CNN 为自定义模型，Whisper 为共享编码器模型",
+                )
                 with gr.Row():
                     btn_mic = gr.Button("分析录音", variant="primary", size="sm")
                     btn_file = gr.Button("分析文件", variant="primary", size="sm")
@@ -200,14 +217,14 @@ def create_app():
 
         outputs = [text_output, radar_output, wave_output, mel_output, history_output]
 
-        btn_mic.click(fn=process_audio, inputs=[audio_mic], outputs=outputs)
-        btn_file.click(fn=process_audio, inputs=[audio_file], outputs=outputs)
+        btn_mic.click(fn=process_audio, inputs=[audio_mic, model_selector], outputs=outputs)
+        btn_file.click(fn=process_audio, inputs=[audio_file, model_selector], outputs=outputs)
         btn_clear.click(fn=clear_history, inputs=[], outputs=outputs)
 
         gr.Markdown(
             "---\n"
             "**毕业设计** | 情感类别: 高兴·愤怒·悲伤·中性·恐惧·惊讶 | "
-            "ASR: OpenAI Whisper | SER: CNN+BiLSTM+Attention"
+            "ASR: OpenAI Whisper | SER: CNN+BiLSTM+Attention   Whisper 共享编码器"
         )
 
     return app
