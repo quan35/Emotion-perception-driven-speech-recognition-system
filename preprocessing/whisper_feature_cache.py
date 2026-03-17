@@ -217,7 +217,7 @@ def extract_whisper_pooled_features(
 def prepare_whisper_feature_dataset(
     cfg: dict,
     device: torch.device,
-    subsets: Iterable[str] = ("ravdess", "casia", "tess", "esd"),
+    subsets: Iterable[str] = ("ravdess", "casia", "tess", "esd", "emodb", "iemocap"),
     cache_dir: Optional[str] = None,
     batch_size: int = 8,
     feature_dtype: str = "float16",
