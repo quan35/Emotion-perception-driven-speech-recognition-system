@@ -11,6 +11,7 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 import glob
 import struct
+from typing import Optional, Dict
 import numpy as np
 import librosa
 import noisereduce as nr
@@ -226,6 +227,147 @@ def organize_esd(raw_dir, output_dir, emotion_map):
     return count
 
 
+def parse_emodb_filename(filename: str) -> Optional[str]:
+    """Parse EMODB emotion code from filename.
+
+    Typical EMODB filenames look like: 03a01Fa.wav
+    The emotion code is a single letter in: W L E A F T N.
+
+    Returns the uppercase emotion code, or None if not found.
+    """
+    base = os.path.splitext(os.path.basename(filename))[0]
+
+    # Fast path: many EMODB names end with the code letter + a trailing char (e.g., 'a'/'b')
+    # We search for any known code letter anywhere in the basename and pick the last match.
+    codes = "WLEAFTN"
+    matches = [ch for ch in base.upper() if ch in codes]
+    if matches:
+        return matches[-1]
+
+    return None
+
+
+def organize_emodb(raw_dir: str, output_dir: str, emotion_map: Dict[str, str]):
+    """Organize flat EMODB wav files into label subfolders.
+
+    Input:  data/raw/emodb/*.wav
+    Output: data/raw/emodb_organized/<label>/emodb_<original>.wav
+
+    emotion_map comes from cfg['datasets']['emodb']['emotions'].
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    count = 0
+    skipped = 0
+
+    for filepath in glob.glob(os.path.join(raw_dir, "**", "*.wav"), recursive=True):
+        code = parse_emodb_filename(filepath)
+        if not code:
+            skipped += 1
+            continue
+
+        label = emotion_map.get(code) or emotion_map.get(code.upper())
+        if label is None:
+            skipped += 1
+            continue
+
+        dest_dir = os.path.join(output_dir, label)
+        os.makedirs(dest_dir, exist_ok=True)
+
+        basename = os.path.basename(filepath)
+        dest = os.path.join(dest_dir, f"emodb_{basename}")
+
+        audio, sr = load_audio(filepath)
+        save_audio(audio, dest, sr=sr)
+        count += 1
+
+    print(f"EMODB 整理完成: {count} 个文件, {skipped} 个跳过")
+    return count, skipped
+
+
+def parse_iemocap_labels(emo_eval_dir: str) -> Dict[str, str]:
+    """
+    解析 IEMOCAP EmoEvaluation 目录下的 .txt 文件。
+    返回 {utterance_id: emotion_code} 字典。
+
+    EmoEvaluation 文件格式示例：
+    [6.2901 - 8.2357]	Ses01F_impro01_F000	neu	[2.5000, 2.5000, 2.5000]
+    """
+    label_dict = {}
+    for txt_file in glob.glob(os.path.join(emo_eval_dir, "*.txt")):
+        with open(txt_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line or not line.startswith('['):
+                    continue
+                parts = line.split('\t')
+                if len(parts) >= 3:
+                    utterance_id = parts[1].strip()
+                    emotion = parts[2].strip()
+                    label_dict[utterance_id] = emotion
+    return label_dict
+
+
+def organize_iemocap(raw_dir: str, output_dir: str, emotion_map: Dict[str, str]):
+    """
+    将 IEMOCAP 数据集按情感标签重新组织。
+    IEMOCAP 结构: session{1-5}/sentences/wav/*.wav + dialog/EmoEvaluation/*.txt
+    输出结构: output_dir/{emotion}/{utterance_id}.wav
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    count = 0
+    skipped = 0
+
+    for session in range(1, 6):
+        session_dir = os.path.join(raw_dir, f"Session{session}")
+        if not os.path.isdir(session_dir):
+            # 尝试小写
+            session_dir = os.path.join(raw_dir, f"session{session}")
+            if not os.path.isdir(session_dir):
+                continue
+
+        # 解析情感标签
+        emo_eval_dir = os.path.join(session_dir, "dialog", "EmoEvaluation")
+        if not os.path.isdir(emo_eval_dir):
+            continue
+        label_dict = parse_iemocap_labels(emo_eval_dir)
+
+        # 处理音频文件
+        wav_dir = os.path.join(session_dir, "sentences", "wav")
+        if not os.path.isdir(wav_dir):
+            continue
+
+        for speaker_dir in os.listdir(wav_dir):
+            speaker_path = os.path.join(wav_dir, speaker_dir)
+            if not os.path.isdir(speaker_path):
+                continue
+
+            for filepath in glob.glob(os.path.join(speaker_path, "*.wav")):
+                basename = os.path.splitext(os.path.basename(filepath))[0]
+
+                # 查找情感标签
+                emotion_code = label_dict.get(basename)
+                if emotion_code is None:
+                    skipped += 1
+                    continue
+
+                # 映射到 6 类标签
+                label = emotion_map.get(emotion_code)
+                if label is None:
+                    skipped += 1
+                    continue
+
+                dest_dir = os.path.join(output_dir, label)
+                os.makedirs(dest_dir, exist_ok=True)
+                dest = os.path.join(dest_dir, f"iemocap_{basename}.wav")
+
+                audio, sr = load_audio(filepath)
+                save_audio(audio, dest, sr=sr)
+                count += 1
+
+    print(f"IEMOCAP 整理完成: {count} 个文件, {skipped} 个跳过")
+    return count, skipped
+
+
 if __name__ == "__main__":
     cfg = load_config()
     preprocessor = AudioPreprocessor(cfg)
@@ -272,5 +414,25 @@ if __name__ == "__main__":
             cfg["datasets"]["esd"]["emotions"],
         )
         preprocessor.process_dataset(esd_organized, os.path.join(processed, "esd"))
+
+    emodb_raw = os.path.join(raw, "emodb")
+    if os.path.isdir(emodb_raw):
+        emodb_organized = os.path.join(raw, "emodb_organized")
+        organize_emodb(
+            emodb_raw,
+            emodb_organized,
+            cfg["datasets"]["emodb"]["emotions"],
+        )
+        preprocessor.process_dataset(emodb_organized, os.path.join(processed, "emodb"))
+
+    iemocap_raw = os.path.join(raw, "iemocap")
+    if os.path.isdir(iemocap_raw):
+        iemocap_organized = os.path.join(raw, "iemocap_organized")
+        organize_iemocap(
+            iemocap_raw,
+            iemocap_organized,
+            cfg["datasets"]["iemocap"]["emotions"],
+        )
+        preprocessor.process_dataset(iemocap_organized, os.path.join(processed, "iemocap"))
 
     print("全部预处理完成。")
