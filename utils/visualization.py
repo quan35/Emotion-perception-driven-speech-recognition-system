@@ -11,15 +11,7 @@ import matplotlib.pyplot as plt
 import librosa
 import librosa.display
 
-EMOTION_LABELS = ["happy", "angry", "sad", "neutral", "fear", "surprise"]
-EMOTION_NAMES_ZH = {
-    "happy": "高兴", "angry": "愤怒", "sad": "悲伤",
-    "neutral": "中性", "fear": "恐惧", "surprise": "惊讶",
-}
-EMOTION_COLORS = {
-    "happy": "#FF8C00", "angry": "#DC143C", "sad": "#4169E1",
-    "neutral": "#808080", "fear": "#8B008B", "surprise": "#228B22",
-}
+from utils.audio_utils import EMOTION_LABELS, EMOTION_NAMES_ZH, EMOTION_COLORS
 
 
 def create_radar_chart(emotion_probs):

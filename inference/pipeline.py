@@ -19,7 +19,11 @@ from utils.audio_utils import (
 from preprocessing.audio_preprocess import AudioPreprocessor
 from preprocessing.feature_extract import FeatureExtractor
 from models.emotion_cnn_bilstm import EmotionRecognizer
-from models.whisper_emotion import WhisperEmotionHead
+from models.whisper_emotion import (
+    WhisperEmotionHead,
+    build_shared_model_from_config,
+    is_legacy_shared_checkpoint,
+)
 
 
 class ASREngine:
@@ -85,8 +89,8 @@ class EmotionAwareSpeechPipeline:
         ws = whisper_size or self.cfg["model"]["whisper_size"]
         self.asr = ASREngine(model_size=ws, device=str(self.device))
 
-        self.cnn_model = None
         self.shared_model = None
+        self.shared_whisper_model = None
         self.active_model_name = self.MODEL_CNN
 
         self._load_cnn_model()
@@ -117,17 +121,44 @@ class EmotionAwareSpeechPipeline:
     def _load_shared_model(self):
         """加载 Whisper 共享编码器情感模型。"""
         path = self.cfg["paths"]["best_shared_model"]
-        self.shared_model = WhisperEmotionHead(
-            self.asr.get_whisper_model(),
-            num_classes=self.cfg["emotion"]["num_classes"],
-        ).to(self.device)
+        ckpt = torch.load(path, map_location=self.device) if os.path.isfile(path) else None
 
-        if os.path.isfile(path):
-            ckpt = torch.load(path, map_location=self.device)
-            self.shared_model.classifier.load_state_dict(ckpt["classifier_state"])
-            print(f"已加载 Whisper 共享编码器模型: {path}")
-        else:
+        if ckpt is None:
+            self.shared_whisper_model = self.asr.get_whisper_model()
+            self.shared_model = build_shared_model_from_config(
+                self.shared_whisper_model,
+                self.cfg,
+            ).to(self.device)
             print(f"警告: 共享编码器模型不存在 ({path})，使用随机权重")
+            self.shared_model.eval()
+            return
+
+        if is_legacy_shared_checkpoint(ckpt):
+            self.shared_whisper_model = self.asr.get_whisper_model()
+            self.shared_model = WhisperEmotionHead(
+                self.shared_whisper_model,
+                num_classes=int(ckpt.get("num_classes", self.cfg["emotion"]["num_classes"])),
+                variant="legacy_mlp",
+                freeze_strategy="freeze_all",
+                pooling="mean",
+                whisper_size=ckpt.get("whisper_size") or self.cfg.get("model", {}).get("whisper_size"),
+            ).to(self.device)
+            self.shared_model.classifier.load_state_dict(ckpt["classifier_state"])
+            print(f"已加载 Whisper 共享编码器模型(legacy): {path}")
+            self.shared_model.eval()
+            return
+
+        shared_cfg = ckpt.get("shared_model_config", {})
+        whisper_size = ckpt.get("whisper_size") or self.cfg.get("model", {}).get("whisper_size")
+        self.shared_whisper_model = whisper.load_model(whisper_size, device=str(self.device))
+        self.shared_model = build_shared_model_from_config(
+            self.shared_whisper_model,
+            self.cfg,
+            whisper_size=whisper_size,
+            **shared_cfg,
+        ).to(self.device)
+        self.shared_model.load_state_dict(ckpt["state_dict"])
+        print(f"已加载 Whisper 共享编码器模型(v{ckpt.get('format_version', 2)}): {path}")
         self.shared_model.eval()
 
     def set_model(self, model_name):

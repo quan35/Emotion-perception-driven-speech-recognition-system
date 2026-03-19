@@ -28,6 +28,23 @@ model:
   classifier_hidden: 128
   classifier_dropout: 0.2
 
+shared_model:
+  variant: "transformer_head"
+  checkpoint_format: 2
+  training_mode: "live_encoder"
+  pooling: "attention"
+  norm: "layernorm"
+  freeze_strategy: "freeze_all"
+  head_layers: 2
+  head_hidden_dim: 768
+  num_heads: 8
+  ff_mult: 4
+  dropout: 0.1
+  classifier_hidden: 256
+  attention_pool_hidden: 256
+  legacy_hidden_dims: [256, 64]
+  cache_feature_dtype: "float16"
+
 training:
   batch_size: 256
   whisper_feature_batch_size: 64
