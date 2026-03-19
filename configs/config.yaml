@@ -95,7 +95,6 @@ datasets:
       "Sad": "sad"
       "Surprise": "surprise"
   emodb:
-    url: "https://www.emodb.bilderbar.info/"
     emotions:
       "W": "angry"    # Wut (anger)
       "A": "fear"     # Angst (fear)
@@ -105,7 +104,6 @@ datasets:
       "L": "neutral"  # Langeweile (boredom) -> neutral
       "E": "surprise" # Ekel (disgust) -> surprise (align with existing remap)
   iemocap:
-    url: "https://sail.usc.edu/iemocap/"
     emotions:
       "ang": "angry"       # anger
       "hap": "happy"       # happiness

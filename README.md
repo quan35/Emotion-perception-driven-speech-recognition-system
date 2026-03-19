@@ -55,6 +55,8 @@
 - CASIA https://www.modelscope.cn/datasets/Westwest/CASIA
 - TESS https://www.kaggle.com/datasets/ejlok1/toronto-emotional-speech-set-tess
 - ESD https://github.com/HLTSingapore/Emotional-Speech-Data
+- IEMOCAP
+- EMODB
 
 * 数据集位于项目文件夹之外，通过软链接接入
 
