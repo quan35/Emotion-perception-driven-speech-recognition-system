@@ -14,6 +14,7 @@ from utils.audio_utils import load_config, load_audio, EMOTION_LABELS, EMOTION_N
 from utils.visualization import (
     create_radar_chart, create_waveform_plot, create_mel_spectrogram_plot,
     create_emotion_text_html, create_emotion_history_chart,
+    create_model_comparison_bar, create_comparison_result_html,
 )
 from inference.pipeline import EmotionAwareSpeechPipeline
 
@@ -107,6 +108,34 @@ def clear_history():
     )
 
 
+def process_compare_audio(audio_input):
+    """用两个模型对比分析同一段音频。"""
+    empty = (
+        "<p style='color:#999;padding:20px;'>请先录音或上传音频文件</p>",
+        None,
+    )
+    if audio_input is None:
+        return empty
+
+    pipe = get_pipeline()
+
+    if isinstance(audio_input, tuple):
+        sr, audio_array = audio_input
+        audio_array = audio_array.astype(np.float32)
+        if audio_array.ndim > 1:
+            audio_array = audio_array.mean(axis=1)
+        if np.max(np.abs(audio_array)) > 1.0:
+            audio_array = audio_array / 32768.0
+        compare_results = pipe.process_compare((audio_array, sr))
+    else:
+        compare_results = pipe.process_compare(audio_input)
+
+    compare_html = create_comparison_result_html(compare_results)
+    compare_bar = create_model_comparison_bar(compare_results)
+
+    return compare_html, compare_bar
+
+
 THEME = gr.themes.Soft(
     primary_hue="indigo",
     secondary_hue="blue",
@@ -170,7 +199,7 @@ def build_legend_html():
 def create_app():
     with gr.Blocks(theme=THEME, css=CSS, title="情感语音识别系统") as app:
         gr.HTML('<div class="main-title"><h1>情感感知驱动的说话人语音识别系统</h1></div>')
-        gr.HTML('<div class="subtitle">基于 Whisper + CNN-BiLSTM-Attention 的语音识别与情感分析</div>')
+        gr.HTML('<div class="subtitle">基于 Whisper + Transformer 的语音识别与情感分析</div>')
         gr.HTML(build_legend_html())
 
         with gr.Row(equal_height=False):
@@ -192,11 +221,14 @@ def create_app():
                     choices=MODEL_CHOICES,
                     value=MODEL_CHOICES[0],
                     label="选择模型",
-                    info="CNN 为自定义模型，Whisper 为共享编码器模型",
+                    info="CNN: 传统基线 | Whisper+Transformer: 毕设主线",
                 )
                 with gr.Row():
                     btn_mic = gr.Button("分析录音", variant="primary", size="sm")
                     btn_file = gr.Button("分析文件", variant="primary", size="sm")
+                with gr.Row():
+                    btn_compare_mic = gr.Button("对比录音", variant="secondary", size="sm")
+                    btn_compare_file = gr.Button("对比文件", variant="secondary", size="sm")
                 btn_clear = gr.Button("清空历史", variant="secondary", size="sm")
 
             # ---- 中栏: 结果 ----
@@ -215,16 +247,27 @@ def create_app():
                 wave_output = gr.Plot(label="波形图")
                 mel_output = gr.Plot(label="Mel 频谱图")
 
+        # ---- 对比分析区域 ----
+        with gr.Accordion("两模型对比分析", open=False):
+            compare_html_output = gr.HTML(
+                value="<p style='color:#999;padding:20px;'>点击「对比录音」或「对比文件」查看两模型对比结果</p>",
+                label="对比结果",
+            )
+            compare_bar_output = gr.Plot(label="模型情感预测对比柱状图")
+
         outputs = [text_output, radar_output, wave_output, mel_output, history_output]
+        compare_outputs = [compare_html_output, compare_bar_output]
 
         btn_mic.click(fn=process_audio, inputs=[audio_mic, model_selector], outputs=outputs)
         btn_file.click(fn=process_audio, inputs=[audio_file, model_selector], outputs=outputs)
+        btn_compare_mic.click(fn=process_compare_audio, inputs=[audio_mic], outputs=compare_outputs)
+        btn_compare_file.click(fn=process_compare_audio, inputs=[audio_file], outputs=compare_outputs)
         btn_clear.click(fn=clear_history, inputs=[], outputs=outputs)
 
         gr.Markdown(
             "---\n"
             "**毕业设计** | 情感类别: 高兴·愤怒·悲伤·中性·恐惧·惊讶 | "
-            "ASR: OpenAI Whisper | SER: CNN+BiLSTM+Attention   Whisper 共享编码器"
+            "ASR: OpenAI Whisper | SER: CNN+BiLSTM+Attention · Whisper+Transformer"
         )
 
     return app

@@ -1,7 +1,29 @@
 """
-CNN + BiLSTM + Attention 情感识别模型。
-输入: Mel 频谱图 (batch, 1, n_mels, time_steps)
-输出: 情感分类 logits (batch, num_classes)
+传统基线模型：CNN + BiLSTM + Attention 情感识别模型
+=================================================
+
+论文定位：传统深度学习 SER 架构对照组，用于与 Whisper+Transformer 主线模型对比。
+
+设计思路（theory.md §一）：
+    语音情感信息同时蕴含在 **局部声学特征**（音高突变、能量爆发）和
+    **全局时序模式**（语速变化、语调走向）中，因此采用三阶段级联架构：
+
+    Mel 频谱图 → 残差SE-CNN(局部特征) → BiLSTM(时序建模)
+               → 多头注意力(关键帧聚合) → 分类头 → 情感类别
+
+    | 阶段 | 模块              | 职责                                   |
+    |------|-------------------|----------------------------------------|
+    | 1    | 残差 SE-CNN       | 从频谱图中提取局部声学模式              |
+    | 2    | BiLSTM            | 沿时间轴双向建模上下文依赖关系          |
+    | 3    | 多头注意力        | 自适应聚焦并加权聚合情感最强烈的时序特征 |
+    | 4    | 分类头            | 将聚合后的特征映射到 6 种情感类别        |
+
+输入: Mel 频谱图 (batch, 1, n_mels=128, time_steps)
+      Mel 刻度模拟人耳对频率的非线性感知，低频分辨率高、高频分辨率低，
+      与人类对语音情感的感知特性一致。
+输出: 情感分类 logits (batch, num_classes=6)
+
+总参数量: ~1.4M（全部参与训练，从零训练范式）
 """
 
 import math
@@ -11,9 +33,11 @@ import torch.nn.functional as F
 
 
 class _SEBlock(nn.Module):
-    """Squeeze-and-Excitation 通道注意力模块。
+    """Squeeze-and-Excitation 通道注意力模块（theory.md §一.3）。
 
-    全局平均池化 -> 两层 FC 学习通道权重 -> Sigmoid 门控重标定。
+    通过全局平均池化 -> 两层 FC 学习通道权重 -> Sigmoid 门控重标定。
+    动态学习每个特征通道的重要性，放大关键特征（如共振峰、音高相关特征），
+    抑制无关特征。
     """
 
     def __init__(self, channels, reduction=4):
@@ -34,10 +58,21 @@ class _SEBlock(nn.Module):
 
 
 class _ResidualCNNBlock(nn.Module):
-    """带残差连接 + SE 通道注意力的 CNN 块。
+    """带残差连接 + SE 通道注意力的 CNN 块（theory.md §一.3）。
+
+    残差连接：允许梯度通过快捷通道直接回传，缓解深度网络中的梯度消失问题。
+    SE 注意力：全局平均池化 + 两层 FC，动态学习通道重要性权重。
+    Spatial Dropout：在特征图层面随机丢弃整个通道，强迫网络学习更多样化的特征。
 
     当 in_ch != out_ch 时，使用 1x1 卷积做通道对齐；
     MaxPool 同时作用于主路径和残差路径，保持空间尺寸一致。
+
+    3 层级联后的维度变化：
+        输入 (B, 1, 128, T)
+          → 第1层 → (B, 32, 64, T/2)
+          → 第2层 → (B, 64, 32, T/4)
+          → 第3层 → (B, 128, 16, T/8)
+          → 展平   → (B, T/8, 2048)
     """
 
     def __init__(self, in_ch, out_ch, dropout=0.1, se_reduction=4):
@@ -67,11 +102,18 @@ class _ResidualCNNBlock(nn.Module):
 
 
 class _MultiHeadAttention(nn.Module):
-    """多头自注意力时间聚合模块。
+    """多头自注意力时序聚合模块（theory.md §一.5）。
 
     将 BiLSTM 输出从 (batch, time, embed_dim) 聚合为 (batch, embed_dim)。
-    每个头在独立子空间中计算 scaled dot-product attention 权重，
-    拼接后通过线性投影再沿时间维加权求和。
+
+    工作流程：
+      1. 自注意力变换：通过 Q/K/V 矩阵计算缩放点积注意力，
+         生成上下文感知的序列表示
+      2. 时间维加权聚合：从注意力分数中派生时序重要性权重，
+         对上下文序列加权求和，得到 (B, embed_dim) 的句级表示
+
+    多头机制（默认 4 头，每头 32 维）让模型在独立子空间中学习不同的
+    关注模式（如音高变化、能量爆发等），避免单头注意力的表达瓶颈。
     """
 
     def __init__(self, embed_dim, num_heads=4, dropout=0.1):
@@ -119,6 +161,25 @@ class _MultiHeadAttention(nn.Module):
 
 
 class EmotionRecognizer(nn.Module):
+    """传统基线模型：CNN + BiLSTM + Attention（theory.md §一）。
+
+    三阶段级联架构：
+      阶段 1 - 残差 SE-CNN：从 Mel 频谱图中提取局部声学模式
+      阶段 2 - BiLSTM：沿时间轴双向建模上下文依赖关系
+      阶段 3 - 多头注意力：自适应聚焦并加权聚合情感最强烈的时序特征
+
+    默认维度流：
+      输入 Mel:       (B, 1, 128, T)
+      CNN 输出展平:   (B, T', 2048)     # T' = T/8
+      BiLSTM 输出:    (B, T', 128)      # 2 × lstm_hidden
+      注意力聚合:     (B, 128)
+      分类器:         128 → 64 → 6
+
+    训练策略（theory.md §一.8）：
+      - 高斯噪声注入：训练时在输入频谱图上叠加微小噪声（std=0.01），提升鲁棒性
+      - 权重初始化：Conv 用 Kaiming、LSTM 用 Orthogonal、Linear 用 Xavier
+      - LayerNorm：在 BiLSTM 和 Attention 之间稳定输入分布
+    """
     def __init__(self, num_classes=6, n_mels=128,
                  cnn_channels=(32, 64, 128),
                  cnn_dropout=0.1, se_reduction=4,

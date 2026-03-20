@@ -139,3 +139,102 @@ def create_emotion_history_chart(history):
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     )
     return fig
+
+
+# ---------- 三模型对比可视化 ----------
+
+MODEL_DISPLAY_COLORS = {
+    "CNN+BiLSTM+Attention": "#4169E1",
+    "Whisper+Transformer": "#DC143C",
+}
+
+
+def create_model_comparison_bar(compare_results):
+    """
+    分组柱状图：各模型对各情感的预测概率。
+    compare_results: dict {model_name: result_dict}，result_dict 包含 emotion_probs。
+    """
+    fig = go.Figure()
+
+    for model_name, result in compare_results.items():
+        probs = result["emotion_probs"]
+        display_labels = [f"{EMOTION_NAMES_ZH.get(l, l)}\n{l}" for l in EMOTION_LABELS]
+        values = [probs.get(l, 0) for l in EMOTION_LABELS]
+        color = MODEL_DISPLAY_COLORS.get(model_name, "#888888")
+
+        fig.add_trace(go.Bar(
+            name=model_name,
+            x=display_labels,
+            y=values,
+            marker_color=color,
+            opacity=0.85,
+        ))
+
+    fig.update_layout(
+        barmode="group",
+        title=dict(text="模型情感预测对比", x=0.5, font=dict(size=16)),
+        xaxis_title="情感类别",
+        yaxis_title="预测概率",
+        yaxis=dict(range=[0, 1]),
+        height=420,
+        margin=dict(l=50, r=30, t=60, b=60),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+    )
+    return fig
+
+
+def create_comparison_result_html(compare_results):
+    """
+    HTML 并排卡片：展示各模型的预测结果。
+    compare_results: dict {model_name: result_dict}。
+    """
+    if not compare_results:
+        return "<p style='color:#999;padding:20px;'>暂无对比结果</p>"
+
+    cards = []
+    for model_name, result in compare_results.items():
+        color = result.get("emotion_color", "#888")
+        emotion_zh = result.get("emotion_zh", "")
+        emotion = result.get("emotion", "")
+        confidence = result.get("confidence", 0)
+        model_color = MODEL_DISPLAY_COLORS.get(model_name, "#888")
+
+        card = f"""
+        <div style="flex:1; min-width:200px; padding:12px; border-radius:8px;
+                    border:2px solid {color};
+                    background:linear-gradient(135deg, {color}15, {color}05);">
+            <div style="font-size:0.8em; color:{model_color}; font-weight:bold;
+                        margin-bottom:6px; padding:2px 6px; background:{model_color}15;
+                        border-radius:4px; display:inline-block;">
+                {model_name}
+            </div>
+            <div style="font-size:1.3em; color:{color}; font-weight:bold; margin:6px 0;">
+                {emotion_zh} ({emotion})
+            </div>
+            <div style="font-size:0.9em; color:#666;">
+                置信度: <strong>{confidence:.1%}</strong>
+            </div>
+        </div>
+        """
+        cards.append(card)
+
+    # 转录文本（取第一个模型的）
+    first_result = next(iter(compare_results.values()))
+    text = first_result.get("text", "")
+    text_html = f"""
+    <div style="margin-top:12px; padding:10px; border-radius:6px;
+                background:#f8f9fa; border:1px solid #dee2e6;">
+        <div style="font-size:0.8em; color:#666; margin-bottom:4px;">转录文本:</div>
+        <div style="font-size:1.1em; color:#333; line-height:1.5;">
+            {text if text else '<em style="color:#999;">（未检测到语音内容）</em>'}
+        </div>
+    </div>
+    """
+
+    html = f"""
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        {"".join(cards)}
+    </div>
+    {text_html}
+    """
+    return html

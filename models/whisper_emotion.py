@@ -1,8 +1,23 @@
 """
-Whisper 共享编码器 + 情感分类头。
-支持：
-1. legacy 基线：Whisper Encoder -> Mean Pool -> MLP
-2. transformer 主线：Whisper Encoder -> Norm -> Transformer Head -> Pooling -> Classifier
+毕设主线模型：Whisper Encoder + Transformer Emotion Head（theory.md §二）
+=====================================================================
+
+论文定位：基于预训练 Transformer 的迁移学习 SER 模型，是毕设的核心研究对象。
+
+设计思路（theory.md §二.1）：
+    与传统模型从零训练不同，主线模型采用 **迁移学习** 策略：
+    - Whisper Encoder 在 68 万小时多样化音频上预训练，已学会提取丰富的通用声学特征
+    - 在其输出序列之上，增加轻量 Transformer Emotion Head，专门建模情感时序依赖
+    - 通过 Attention Pooling 聚焦情感关键帧，避免平均池化的信息稀释
+
+    音频 → Whisper log-mel(80) → [Whisper Encoder] → Transformer Emotion Head
+         → Attention Pooling → 分类头 → 情感类别
+
+消融实验（theory.md §四）：
+    A. 归一化策略：LayerNorm / DyT / Derf
+    B. 微调策略：  freeze_all / unfreeze_last_2
+
+总参数量: ~101M（其中可训练 ~14.6M，freeze_all 模式）
 """
 
 from typing import Any, Dict, Iterable, Optional, Sequence
@@ -13,6 +28,8 @@ import torch.nn.functional as F
 
 
 WHISPER_DIMS = {
+    # Whisper 各规模的隐藏维度（theory.md §二.2.2）
+    # 本项目默认使用 small（768 维）
     "tiny": 384,
     "base": 512,
     "small": 768,
@@ -21,20 +38,21 @@ WHISPER_DIMS = {
 }
 
 DEFAULT_SHARED_MODEL_CONFIG = {
-    "variant": "transformer_head",
+    # 默认参数（theory.md §二.3.4）
+    "variant": "transformer_head",       # 毕设主线
     "checkpoint_format": 2,
-    "training_mode": "live_encoder",
-    "pooling": "attention",
-    "norm": "layernorm",
-    "freeze_strategy": "freeze_all",
-    "head_layers": 2,
-    "head_hidden_dim": None,
-    "num_heads": 8,
-    "ff_mult": 4,
+    "training_mode": "live_encoder",     # 直接输入音频，端到端前向
+    "pooling": "attention",              # Attention Pooling（theory.md §二.4）
+    "norm": "layernorm",                 # 归一化策略（消融实验 A）
+    "freeze_strategy": "freeze_all",     # 冻结策略（消融实验 B）
+    "head_layers": 2,                    # Transformer Head 层数
+    "head_hidden_dim": None,             # 默认与 Whisper enc_dim 一致（768）
+    "num_heads": 8,                      # 注意力头数（每头 96 维）
+    "ff_mult": 4,                        # FFN 扩展倍数（中间维度 3072）
     "dropout": 0.1,
-    "classifier_hidden": 256,
-    "attention_pool_hidden": 256,
-    "legacy_hidden_dims": [256, 64],
+    "classifier_hidden": 256,            # 分类头：768 → 256 → 6
+    "attention_pool_hidden": 256,        # Attention Pooling 隐藏维度
+    "legacy_hidden_dims": [256, 64],     # legacy_mlp 兼容路径
     "cache_feature_dtype": "float16",
 }
 
@@ -98,6 +116,15 @@ def _to_hidden_dims(hidden_dims: Iterable[int]) -> Sequence[int]:
 
 
 class DynamicTanh(nn.Module):
+    """DyT：无归一化 Transformer 方案（theory.md §二.3.3，消融实验 A2）。
+
+    来自论文 "Transformers without Normalization"，
+    用可学习的逐元素非线性变换替代 LayerNorm：
+
+        DyT(x) = gamma * tanh(alpha * x) + beta
+
+    其中 alpha、gamma、beta 均为可学习参数（维度 = hidden_dim）。
+    """
     def __init__(self, hidden_dim: int):
         super().__init__()
         self.alpha = nn.Parameter(torch.ones(hidden_dim))
@@ -109,6 +136,15 @@ class DynamicTanh(nn.Module):
 
 
 class DynamicErf(nn.Module):
+    """Derf：更强的无归一化 Transformer 方案（theory.md §二.3.3，消融实验 A3）。
+
+    来自论文 "Stronger Normalization-Free Transformers"，
+    在 DyT 基础上引入额外 shift 参数：
+
+        Derf(x) = gamma * erf(alpha * x + shift) + beta
+
+    其中 alpha、gamma、beta、shift 均为可学习参数。
+    """
     def __init__(self, hidden_dim: int):
         super().__init__()
         self.alpha = nn.Parameter(torch.ones(hidden_dim))
@@ -121,6 +157,13 @@ class DynamicErf(nn.Module):
 
 
 def build_norm(norm_type: str, hidden_dim: int) -> nn.Module:
+    """构建归一化模块（theory.md §二.3.3，消融实验 A）。
+
+    三种可替换的归一化策略，在 Transformer Block 的 Pre-Norm 位置使用：
+      - layernorm: 标准 LayerNorm（A1，默认）
+      - dyt:       DynamicTanh，无归一化 Transformer（A2）
+      - derf:      DynamicErf，更强的无归一化方案（A3）
+    """
     norm_type = _normalize_strategy(norm_type)
     if norm_type == "layernorm":
         return nn.LayerNorm(hidden_dim)
@@ -132,6 +175,14 @@ def build_norm(norm_type: str, hidden_dim: int) -> nn.Module:
 
 
 class MeanPooling(nn.Module):
+    """简单平均池化（theory.md §四，可选补充实验 C2）。
+
+    将序列 (B, T, D) 沿时间维取平均得到 (B, D)。
+    支持 attention_mask 以排除填充帧。
+
+    缺点：情感信息往往集中在少数关键帧，平均池化会稀释情感峰值。
+    用于与 AttentionPooling 的对比实验。
+    """
     def forward(
         self,
         x: torch.Tensor,
@@ -155,6 +206,15 @@ class MeanPooling(nn.Module):
 
 
 class AttentionPooling(nn.Module):
+    """可学习的注意力池化（theory.md §二.4，可选补充实验 C1）。
+
+    通过可学习的评分网络自适应聚焦情感关键帧：
+        x → Linear(D, pool_hidden) → Tanh → Linear(pool_hidden, 1) → Softmax → 加权求和
+
+    相比 MeanPooling 的优势：
+      - 情感信息往往集中在少数关键帧，平均池化会稀释情感峰值
+      - AttentionPooling 自动学习哪些帧对情感判断最重要
+    """
     def __init__(self, hidden_dim: int, pool_hidden_dim: int):
         super().__init__()
         self.score = nn.Sequential(
@@ -191,6 +251,11 @@ class AttentionPooling(nn.Module):
 
 
 class MLPClassifier(nn.Module):
+    """分类头（theory.md §二.5）。
+
+    默认结构：Linear(768 → 256) → GELU → Dropout(0.1) → Linear(256 → 6)
+    保持轻量，将主要学习能力留给 Transformer Emotion Head。
+    """
     def __init__(self, input_dim: int, hidden_dims: Sequence[int], num_classes: int, dropout: float):
         super().__init__()
         dims = [input_dim, *hidden_dims, num_classes]
@@ -209,6 +274,16 @@ class MLPClassifier(nn.Module):
 
 
 class EmotionTransformerBlock(nn.Module):
+    """Transformer Emotion Head 的单层 Block（theory.md §二.3.2）。
+
+    采用 Pre-Norm 结构，将归一化放在注意力/FFN 之前，训练更稳定：
+
+        x → Norm₁ → Multi-Head Self-Attention → Dropout → 残差相加
+          → Norm₂ → FFN(Linear → GELU → Dropout → Linear) → Dropout → 残差相加
+
+    Pre-Norm 结构是归一化策略消融实验（A）的切入点：
+    Norm₁ 和 Norm₂ 可替换为 LayerNorm / DyT / Derf。
+    """
     def __init__(self, hidden_dim: int, num_heads: int, ff_mult: int, dropout: float, norm_type: str):
         super().__init__()
         self.norm1 = build_norm(norm_type, hidden_dim)
@@ -251,14 +326,26 @@ class EmotionTransformerBlock(nn.Module):
 
 
 class WhisperEmotionHead(nn.Module):
-    """
-    统一的 Whisper SER 模型入口。
+    """统一的 Whisper SER 模型入口（theory.md §二）。
 
-    variant="legacy_mlp":
-        Whisper Encoder -> Mean Pool -> MLP
+    variant="legacy_mlp"（兼容基线）：
+        Whisper Encoder → Mean Pool → MLP
+        无 Transformer Head，无 Attention Pooling，仅用于向后兼容。
 
-    variant="transformer_head":
-        Whisper Encoder -> Norm/Transformer Head -> Pooling -> Classifier
+    variant="transformer_head"（毕设主线 ★）：
+        Whisper Encoder → [线性投影] → N 层 Transformer Block(Pre-Norm)
+                        → 输出归一化 → Attention Pooling → MLP 分类器
+
+        默认维度流（theory.md §二.6）：
+          输入 Whisper mel:         (B, 80, 3000)
+          Encoder 输出:             (B, 1500, 768)
+          Transformer Head 输出:    (B, 1500, 768)
+          Attention Pooling 输出:   (B, 768)
+          分类器:                   768 → 256 → 6
+
+    冻结策略（theory.md §二.2.3，消融实验 B）：
+      - freeze_all:      冻结全部 Encoder 参数，推理时 torch.no_grad()
+      - unfreeze_last_2:  解冻最后 2 层 Transformer Block + ln_post
     """
 
     def __init__(
@@ -304,11 +391,12 @@ class WhisperEmotionHead(nn.Module):
 
         self._apply_freeze_strategy()
 
+        # ---- legacy_mlp 兼容基线（无 Transformer Head）----
         if self.variant == "legacy_mlp":
             self.input_proj = nn.Identity()
-            self.transformer_blocks = nn.ModuleList()
+            self.transformer_blocks = nn.ModuleList()  # 空，无 Transformer 层
             self.output_norm = nn.Identity()
-            self.pool = MeanPooling()
+            self.pool = MeanPooling()                  # 简单平均池化
             self.classifier = MLPClassifier(
                 input_dim=self.enc_dim,
                 hidden_dims=_to_hidden_dims(legacy_hidden_dims),
@@ -316,10 +404,13 @@ class WhisperEmotionHead(nn.Module):
                 dropout=max(self.dropout_p, 0.2),
             )
         else:
+            # ---- 毕设主线：Transformer Emotion Head（theory.md §二.3）----
+            # 线性投影：当 head_hidden_dim != enc_dim 时统一维度
             self.input_proj = (
                 nn.Identity() if self.head_hidden_dim == self.enc_dim
                 else nn.Linear(self.enc_dim, self.head_hidden_dim)
             )
+            # N 层 Transformer Block（Pre-Norm，theory.md §二.3.2）
             self.transformer_blocks = nn.ModuleList([
                 EmotionTransformerBlock(
                     hidden_dim=self.head_hidden_dim,
@@ -330,8 +421,11 @@ class WhisperEmotionHead(nn.Module):
                 )
                 for _ in range(self.head_layers)
             ])
+            # 输出归一化（归一化策略由 norm_type 控制，消融实验 A）
             self.output_norm = build_norm(self.norm_type, self.head_hidden_dim)
+            # Attention Pooling：聚焦情感关键帧（theory.md §二.4）
             self.pool = self._build_pool(self.pooling_type, self.head_hidden_dim, int(attention_pool_hidden))
+            # 分类头（theory.md §二.5）
             self.classifier = MLPClassifier(
                 input_dim=self.head_hidden_dim,
                 hidden_dims=[int(classifier_hidden)],
@@ -362,6 +456,12 @@ class WhisperEmotionHead(nn.Module):
         raise ValueError(f"不支持的 pooling 类型: {pooling}")
 
     def _apply_freeze_strategy(self):
+        """应用 Whisper Encoder 冻结策略（theory.md §二.2.3，消融实验 B）。
+
+        freeze_all:      冻结全部参数，防止灾难性遗忘（B1）
+        unfreeze_last_2:  解冻最后 2 层 Block + ln_post，允许适配情感任务（B2）
+        unfreeze_all:    解冻全部参数（非论文主线，仅供实验）
+        """
         for param in self.encoder.parameters():
             param.requires_grad = False
 
@@ -394,6 +494,13 @@ class WhisperEmotionHead(nn.Module):
         return ~attention_mask.bool()
 
     def encode(self, mel: torch.Tensor) -> torch.Tensor:
+        """Whisper Encoder 前向传播（theory.md §二.2）。
+
+        输入:  mel (B, 80, 3000) — Whisper 格式的 log-mel 频谱图
+        输出:  (B, 1500, D) — 编码器输出的序列特征
+
+        freeze_all 模式下使用 torch.no_grad() 避免计算梯度，节省显存。
+        """
         if self.freeze_strategy == "freeze_all":
             with torch.no_grad():
                 return self.encoder(mel)
@@ -405,6 +512,17 @@ class WhisperEmotionHead(nn.Module):
         attention_mask: Optional[torch.Tensor] = None,
         return_details: bool = False,
     ):
+        """Transformer Emotion Head 前向传播（theory.md §二.3）。
+
+        对 Whisper Encoder 输出的序列特征进行情感任务适配：
+          transformer_head: 投影 → N 层 Transformer Block → 输出归一化 → 池化 → 分类
+          legacy_mlp:       直接池化 → MLP 分类
+
+        Args:
+            sequence_features: (B, T, D) 或 (B, D)（pooled 模式）
+            attention_mask:    (B, T) 布尔掩码，True 表示有效帧
+            return_details:    是否返回中间结果（注意力权重等，用于可视化）
+        """
         if self.variant == "legacy_mlp":
             if sequence_features.ndim == 2:
                 pooled = sequence_features

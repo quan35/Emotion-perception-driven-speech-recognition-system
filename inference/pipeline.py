@@ -74,11 +74,11 @@ class EmotionAwareSpeechPipeline:
     """
     情感感知语音识别流水线。
     整合 ASR + SER，一次调用返回文字 + 情感。
-    支持在 CNN+BiLSTM+Attention 和 Whisper 共享编码器之间动态切换。
+    支持两个 SER 模型：CNN+BiLSTM+Attention（传统基线）和 Whisper+Transformer（毕设主线）。
     """
 
     MODEL_CNN = "CNN+BiLSTM+Attention"
-    MODEL_SHARED = "Whisper 共享编码器"
+    MODEL_SHARED = "Whisper+Transformer"
 
     def __init__(self, config=None, whisper_size=None):
         self.cfg = config or load_config()
@@ -119,7 +119,7 @@ class EmotionAwareSpeechPipeline:
         self.cnn_model.eval()
 
     def _load_shared_model(self):
-        """加载 Whisper 共享编码器情感模型。"""
+        """加载 Whisper+Transformer 情感模型。"""
         path = self.cfg["paths"]["best_shared_model"]
         ckpt = torch.load(path, map_location=self.device) if os.path.isfile(path) else None
 
@@ -129,7 +129,7 @@ class EmotionAwareSpeechPipeline:
                 self.shared_whisper_model,
                 self.cfg,
             ).to(self.device)
-            print(f"警告: 共享编码器模型不存在 ({path})，使用随机权重")
+            print(f"警告: Whisper+Transformer 模型不存在 ({path})，使用随机权重")
             self.shared_model.eval()
             return
 
@@ -158,7 +158,7 @@ class EmotionAwareSpeechPipeline:
             **shared_cfg,
         ).to(self.device)
         self.shared_model.load_state_dict(ckpt["state_dict"])
-        print(f"已加载 Whisper 共享编码器模型(v{ckpt.get('format_version', 2)}): {path}")
+        print(f"已加载 Whisper+Transformer 模型(v{ckpt.get('format_version', 2)}): {path}")
         self.shared_model.eval()
 
     def set_model(self, model_name):
@@ -184,7 +184,7 @@ class EmotionAwareSpeechPipeline:
         return probs.cpu().numpy()[0]
 
     def _get_emotion_from_whisper(self, audio_path):
-        """使用 Whisper 共享编码器模型进行情感识别。"""
+        """使用 Whisper+Transformer 模型进行情感识别。"""
         audio = whisper.load_audio(audio_path)
         audio = whisper.pad_or_trim(audio)
         mel = whisper.log_mel_spectrogram(audio).unsqueeze(0).to(self.device)
@@ -207,8 +207,8 @@ class EmotionAwareSpeechPipeline:
           - emotion_probs: 各情感的概率分布 dict
           - emotion_color: 情感对应的颜色
           - confidence: 最大概率值
+          - model_used: 使用的模型名称
         """
-        # 处理 numpy 输入
         if isinstance(audio_input, tuple):
             audio_array, sr = audio_input
             tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
@@ -239,9 +239,12 @@ class EmotionAwareSpeechPipeline:
             audio = pad_or_trim(audio, int(sr * self.cfg["audio"]["max_duration"]))
             probs = self._get_emotion_from_mel(audio)
 
+        return self._build_result_from_probs(probs, self.active_model_name, asr_result)
+
+    def _build_result_from_probs(self, probs, model_name, asr_result):
+        """从概率数组构建标准结果字典。"""
         emotion_idx = int(np.argmax(probs))
         emotion_label = EMOTION_LABELS[emotion_idx]
-
         return {
             "text": asr_result["text"],
             "segments": asr_result["segments"],
@@ -253,5 +256,50 @@ class EmotionAwareSpeechPipeline:
             },
             "emotion_color": EMOTION_COLORS[emotion_label],
             "confidence": float(probs[emotion_idx]),
-            "model_used": self.active_model_name,
+            "model_used": model_name,
         }
+
+    def process_compare(self, audio_input, language=None):
+        """
+        用两个模型推理同一段音频，返回对比结果。
+
+        返回 dict: {model_name: result_dict, ...}
+        """
+        if isinstance(audio_input, tuple):
+            audio_array, sr = audio_input
+            tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+            try:
+                import soundfile as sf
+                if sr != 16000:
+                    audio_array = librosa.resample(audio_array.astype(np.float32), orig_sr=sr, target_sr=16000)
+                sf.write(tmp.name, audio_array, 16000)
+                return self._compare_file(tmp.name, language)
+            finally:
+                os.unlink(tmp.name)
+        else:
+            return self._compare_file(audio_input, language)
+
+    def _compare_file(self, audio_path, language=None):
+        asr_result = self.asr.transcribe(audio_path, language=language)
+        results = {}
+
+        # CNN+BiLSTM+Attention
+        sr = self.cfg["audio"]["sample_rate"]
+        audio, _ = load_audio(audio_path, sr=sr)
+        audio = self.preprocessor.remove_silence(audio)
+        min_samples = int(sr * self.cfg["audio"]["min_duration"])
+        if len(audio) < min_samples:
+            audio, _ = load_audio(audio_path, sr=sr)
+        audio = self.preprocessor.normalize(audio)
+        audio = pad_or_trim(audio, int(sr * self.cfg["audio"]["max_duration"]))
+        cnn_probs = self._get_emotion_from_mel(audio)
+        results[self.MODEL_CNN] = self._build_result_from_probs(cnn_probs, self.MODEL_CNN, asr_result)
+
+        # Whisper+Transformer
+        if self.shared_model is not None:
+            transformer_probs = self._get_emotion_from_whisper(audio_path)
+            results[self.MODEL_SHARED] = self._build_result_from_probs(
+                transformer_probs, self.MODEL_SHARED, asr_result,
+            )
+
+        return results
