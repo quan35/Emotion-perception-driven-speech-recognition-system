@@ -2,14 +2,12 @@
 传统基线模型：CNN + BiLSTM + Attention 情感识别模型
 =================================================
 
-论文定位：传统深度学习 SER 架构对照组，用于与 Whisper+Transformer 主线模型对比。
+传统深度学习 SER 架构对照组，用于与 Whisper+Transformer 主线模型对比。
 
-设计思路（theory.md §一）：
-    语音情感信息同时蕴含在 **局部声学特征**（音高突变、能量爆发）和
-    **全局时序模式**（语速变化、语调走向）中，因此采用三阶段级联架构：
+设计思路：
+    语音情感信息同时蕴含在 **局部声学特征**（音高突变、能量爆发）和 **全局时序模式**（语速变化、语调走向）中，因此采用三阶段级联架构：
 
-    Mel 频谱图 → 残差SE-CNN(局部特征) → BiLSTM(时序建模)
-               → 多头注意力(关键帧聚合) → 分类头 → 情感类别
+    Mel 频谱图 → 残差SE-CNN(局部特征) → BiLSTM(时序建模) → 多头注意力(关键帧聚合) → 分类头 → 情感类别
 
     | 阶段 | 模块              | 职责                                   |
     |------|-------------------|----------------------------------------|
@@ -33,7 +31,7 @@ import torch.nn.functional as F
 
 
 class _SEBlock(nn.Module):
-    """Squeeze-and-Excitation 通道注意力模块（theory.md §一.3）。
+    """Squeeze-and-Excitation 通道注意力模块。
 
     通过全局平均池化 -> 两层 FC 学习通道权重 -> Sigmoid 门控重标定。
     动态学习每个特征通道的重要性，放大关键特征（如共振峰、音高相关特征），
@@ -58,7 +56,7 @@ class _SEBlock(nn.Module):
 
 
 class _ResidualCNNBlock(nn.Module):
-    """带残差连接 + SE 通道注意力的 CNN 块（theory.md §一.3）。
+    """带残差连接 + SE 通道注意力的 CNN 块。
 
     残差连接：允许梯度通过快捷通道直接回传，缓解深度网络中的梯度消失问题。
     SE 注意力：全局平均池化 + 两层 FC，动态学习通道重要性权重。
@@ -102,7 +100,7 @@ class _ResidualCNNBlock(nn.Module):
 
 
 class _MultiHeadAttention(nn.Module):
-    """多头自注意力时序聚合模块（theory.md §一.5）。
+    """多头自注意力时序聚合模块。
 
     将 BiLSTM 输出从 (batch, time, embed_dim) 聚合为 (batch, embed_dim)。
 
@@ -161,7 +159,7 @@ class _MultiHeadAttention(nn.Module):
 
 
 class EmotionRecognizer(nn.Module):
-    """传统基线模型：CNN + BiLSTM + Attention（theory.md §一）。
+    """传统基线模型：CNN + BiLSTM + Attention。
 
     三阶段级联架构：
       阶段 1 - 残差 SE-CNN：从 Mel 频谱图中提取局部声学模式
@@ -175,7 +173,7 @@ class EmotionRecognizer(nn.Module):
       注意力聚合:     (B, 128)
       分类器:         128 → 64 → 6
 
-    训练策略（theory.md §一.8）：
+    训练策略：
       - 高斯噪声注入：训练时在输入频谱图上叠加微小噪声（std=0.01），提升鲁棒性
       - 权重初始化：Conv 用 Kaiming、LSTM 用 Orthogonal、Linear 用 Xavier
       - LayerNorm：在 BiLSTM 和 Attention 之间稳定输入分布
