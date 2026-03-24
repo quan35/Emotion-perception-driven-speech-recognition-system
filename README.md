@@ -1,190 +1,312 @@
-# 情感感知驱动的语音识别系统
+# 情感感知驱动的说话人语音识别系统
 
-基于 Whisper + CNN-BiLSTM-Attention 的语音识别（ASR）与语音情感识别（SER）系统。
+本项目面向说话人语音输入，联合完成自动语音识别（ASR）与语音情感识别（SER）两项任务，并通过统一的可视化界面输出转写文本、情感类别、置信度和情感分布图。当前实现以 OpenAI Whisper 负责中英文语音转写，以 `CNN+BiLSTM+Attention` 传统基线和 `Whisper + Normalization-Free Transformer Emotion Head` 毕设主线完成六分类情感识别，其中主线默认无归一化方案为 `Derf`。需要说明的是，仓库当前并未实现说话人身份验证或说话人分离模块，因此这里的“说话人语音识别”更准确地指向“面向说话人语音输入的识别与情感分析系统”。
 
-## 功能
+## 核心能力
 
-- 中英文语音转文字（基于 OpenAI Whisper）
-- 语音情感识别（高兴、愤怒、悲伤、中性、恐惧、惊讶）
-- 两种情感识别模型可在界面上实时切换
-- 共享特征编码器方案（复用 Whisper Encoder 进行情感分类）
-- Gradio 可视化交互界面（雷达图、波形图、情感着色文本）
+- 支持中英文语音转文字，底层 ASR 模块为 Whisper。
+- 支持高兴、愤怒、悲伤、中性、恐惧、惊讶六类语音情感识别。
+- 支持两条 SER 路线切换与同音频双模型对比分析。
+- 支持录音与文件上传两种输入方式。
+- 支持雷达图、波形图、Mel 频谱图与情感历史趋势可视化。
+- 支持从多数据集整理、预处理、特征提取、训练到界面推理的完整流程。
 
-## 系统架构
+## 模型路线概览
 
-系统分为**训练阶段**和**使用阶段**：
+| 路线                                                    | 对应实现                       | 角色定位         | 当前说明                                                                                        |
+| ------------------------------------------------------- | ------------------------------ | ---------------- | ----------------------------------------------------------------------------------------------- |
+| `CNN+BiLSTM+Attention`                                  | `models/emotion_cnn_bilstm.py` | 传统深度学习基线 | 使用 `128` 维 Mel 频谱图，突出局部时频模式与时序聚合                                            |
+| `Whisper + Normalization-Free Transformer Emotion Head` | `models/whisper_emotion.py`    | 毕设主线模型     | 默认 `variant=transformer_head`、`training_mode=live_encoder`、`pooling=attention`、`norm=derf` |
+| `legacy_mlp`                                            | `models/whisper_emotion.py`    | 向后兼容路径     | 仅用于兼容旧版“共享编码器 + MLP 分类头”检查点，不应替代主线描述                                 |
 
-- **训练阶段**
-  - **数据集**：RAVDESS / CASIA / TESS / ESD
-  - **预处理**：`preprocessing/audio_preprocess.py`（降噪、静音切除、重采样、定长）
-  - **特征提取**：`preprocessing/feature_extract.py`（Mel(128) + MFCC，保存为 `.npy`）
-  - **训练**：notebooks 中训练两种 SER 模型
-  - **产出**：`checkpoints/best_emotion.pth`、`checkpoints/best_shared.pth`
+## 安装与使用说明
 
-- **使用阶段**
-  - **输入**：录音/上传音频（`ui/app.py`）
-  - **ASR**：Whisper 转写（`inference/pipeline.py`）
-  - **SER**：两种情感模型（可切换）（`inference/pipeline.py`）
-  - **展示**：结果文本 + 可视化图表（`utils/visualization.py`）
+### 1. 环境准备
 
-先训练出模型，再启动界面。界面上对新音频的分析全部依赖训练好的模型权重。
-
-## 两种情感识别模型
-
-|                   | CNN+BiLSTM+Attention                                                          | Whisper 共享编码器                                                            |
-| ----------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| **训练 notebook** | `notebooks/03_train_emotion.ipynb`                                            | `notebooks/04_train_shared.ipynb`                                             |
-| **模型文件**      | `checkpoints/best_emotion.pth`                                                | `checkpoints/best_shared.pth`                                                 |
-| **原理**          | 从 Mel 频谱图中用 CNN 提取局部特征，BiLSTM 建模时序，Attention 加权聚合关键帧 | 复用 Whisper 编码器（预训练于 68 万小时语音）提取特征，冻结编码器只训练分类头 |
-| **特点**          | 自主设计的完整网络，训练所有参数                                              | 借助预训练大模型的迁移学习，训练参数少、收敛快                                |
-
-说明：
-
-- `CNN+BiLSTM+Attention` 路径使用 `librosa` 提取 **Mel(128)** 特征进行情感识别。
-- `Whisper 共享编码器` 路径使用 Whisper 内置的 **log-mel(80)** 特征，并复用 Whisper Encoder 做迁移学习。
-
-## 置信度说明
-
-界面上显示的"置信度"是模型输出经过 softmax 后的最大概率值。例如模型对 6 种情感的概率输出为 `[0.05, 0.02, 0.03, 0.80, 0.01, 0.09]`，则预测置信度 80%。
-
-## 数据集
-
-代码中支持多个公开数据集（均为 **.wav** 音频），并在 `configs/config.yaml` 中维护情感目录/编码映射：
-
-- RAVDESS https://zenodo.org/record/1188976
-- CASIA https://www.modelscope.cn/datasets/Westwest/CASIA
-- TESS https://www.kaggle.com/datasets/ejlok1/toronto-emotional-speech-set-tess
-- ESD https://github.com/HLTSingapore/Emotional-Speech-Data
-- IEMOCAP
-- EMODB
-
-* 数据集位于项目文件夹之外，通过软链接接入
-
-**RAVDESS** — 放入 `data/raw/ravdess/`，脚本会自动按文件名中的情感编码整理：
-
-```
-data/raw/ravdess/
-├── Actor_01/
-│   ├── 03-01-01-01-01-01-01.wav
-│   └── ...
-└── Actor_24/
-```
-
-**CASIA** — 放入 `data/raw/casia/`，脚本会自动处理多层目录结构：
-
-```
-data/raw/casia/
-├── liuchanhg/          # 说话人目录
-│   ├── angry/
-│   │   ├── 201.wav
-│   │   └── ...
-│   ├── happy/
-│   ├── neutral/
-│   ├── sad/
-│   ├── fear/
-│   └── surprise/
-└── zhaoyan/            # 其他说话人
-    └── ...
-```
-
-预处理时会自动将 `{人名}/{情感}/{文件}.wav` 扁平化为 `{情感}/{人名}_{文件}.wav`，无需手动整理。
-
-**TESS/ESD** — 若放入 `data/raw/tess/`、`data/raw/esd/`，同样会在预处理脚本中自动整理并输出到 `data/processed/`。
-
-- `preprocessing/audio_preprocess.py` - 音频预处理脚本 会在 `data/raw` 目录中生成整理后的数据集 `*_organized/`。
-
-## 运行环境
+推荐在具备 NVIDIA GPU 的 Linux 或 AutoDL 环境中运行训练流程，当前项目文档对应的已验证环境为：
 
 ```bash
-PyTorch  2.3.0
-Python  3.12(ubuntu22.04)
-CUDA  12.1
+Python 3.12
+PyTorch 2.3.0
+CUDA 12.1
 ```
 
-依赖版本以 `requirements.txt` 为准。
+如果仅做界面推理，CPU 也可以运行，但 Whisper 和主线情感模型的推理速度会明显下降。
 
-## 完整使用流程
+安装依赖：
 
 ```bash
-# 1. 安装依赖
 pip install -r requirements.txt
+```
 
-# 2. 预处理（数据集整理、降噪、基于能量阈值的静音切除、统一采样率与时长）
+### 2. 数据准备
+
+项目默认从 `configs/config.yaml` 读取数据与模型配置，原始数据目录约定为 `data/raw/`，预处理结果目录约定为 `data/processed/`，常规特征目录约定为 `data/features/`。仓库中的 `data/` 往往通过软链接或外部挂载方式接入，因此在开始训练前，应先将数据集整理到以下结构中，或建立同名软链接。
+
+- `data/raw/ravdess/`
+- `data/raw/casia/`
+- `data/raw/tess/`
+- `data/raw/esd/`
+- `data/raw/emodb/`
+- `data/raw/iemocap/`
+
+当前代码内置了以下公开数据集的整理逻辑与情感映射规则：
+
+- RAVDESS
+- CASIA
+- TESS
+- ESD
+- EMODB
+- IEMOCAP
+
+### 3. 音频预处理
+
+运行下面的命令后，脚本会自动识别已经存在于 `data/raw/` 下的数据集目录，并依次完成数据集整理、降噪、静音切除、归一化、重采样与定长裁剪，最终把结果写入 `data/processed/<dataset>/`。
+
+```bash
 python preprocessing/audio_preprocess.py
+```
 
-# 3. 提取特征（Mel 频谱图 + MFCC）
+该步骤会为 RAVDESS、CASIA、TESS、ESD、EMODB 和 IEMOCAP 分别生成标准化后的六类情感目录，并保留统一的 `16 kHz` 采样率与配置中指定的最小时长、最大时长约束。
+
+### 4. 常规特征提取
+
+传统基线模型依赖 Mel 与 MFCC 特征，因此需要继续执行特征提取脚本。该脚本会遍历 `data/processed/` 中的已处理数据，并把特征保存为 `.npy` 文件。
+
+```bash
 python preprocessing/feature_extract.py
+```
 
-# 4. 训练模型（在 Jupyter 中逐格运行）
-#    - notebooks/03_train_emotion.ipynb   → 训练 CNN+BiLSTM+Attention
-#    - notebooks/04_train_shared.ipynb    → 训练 Whisper 共享编码器
+输出目录结构如下：
 
-# 5. 启动界面（加载训练好的模型，对新音频做实时分析）
+- `data/features/<dataset>/mel/<emotion>/*.npy`
+- `data/features/<dataset>/mfcc/<emotion>/*.npy`
+
+### 5. 训练传统基线模型
+
+传统基线模型的训练流程位于 `notebooks/03_train_emotion.ipynb`。先启动 Jupyter，再按笔记本中的顺序执行数据加载、划分、训练、验证与测试单元。
+
+训练完成后，模型权重通常保存为：
+
+- `checkpoints/best_emotion.pth`
+
+### 6. 训练 Whisper 主线模型
+
+主线模型训练位于 `notebooks/04_train_shared.ipynb`。该笔记本默认读取 `configs/config.yaml` 中的 `shared_model` 配置，并使用 `Whisper + Normalization-Free Transformer Emotion Head` 路线。默认情况下，`training_mode=live_encoder`，表示直接输入音频并在线运行 Whisper 编码器，同时在 Emotion Head 中采用 `Derf` 作为主线默认无归一化设计。如果 GPU 显存或 I/O 受限，可以切换为 `cached_sequence` 以缓存序列特征；如果只是兼容旧版共享编码器基线，则可以使用 `cached_pooled`，但该模式不属于当前论文主线。
+
+当前代码结构里：
+
+- `Derf` 是毕设主线默认配置，对应主结果与主叙事。
+- `DyT` 是无归一化 Transformer 的对比配置，可作为消融实验设置。
+- `LayerNorm` 是标准归一化兼容配置，也可作为消融实验设置。
+
+`LayerNorm` 和 `DyT` 被保留为“兼容 + 对比 + 消融”三位一体的配置入口。
+
+#### 6.1 切换主线与消融配置
+
+做主线实验或归一化对比实验时，直接修改 `configs/config.yaml` 中的 `shared_model.norm` 即可：
+
+```yaml
+shared_model:
+  variant: "transformer_head"
+  training_mode: "live_encoder"
+  pooling: "attention"
+  norm: "derf" # 主线默认
+  freeze_strategy: "freeze_all"
+```
+
+可选值如下：
+
+- `norm: "derf"`：主线默认配置，推荐作为论文主结果。
+- `norm: "dyt"`：无归一化对比配置，可作为归一化消融实验之一。
+- `norm: "layernorm"`：标准归一化对比配置，可作为归一化消融实验之一。
+
+#### 6.2 归一化与冻结策略消融的推荐操作流程
+
+若要系统比较 `Derf`、`DyT`、`LayerNorm` 以及不同冻结策略，建议按下面的顺序执行：
+
+1. 先在 `configs/config.yaml` 中把 `shared_model.norm` 设为 `derf`、`shared_model.freeze_strategy` 设为 `freeze_all`，运行 `notebooks/04_train_shared.ipynb`，得到主线结果。
+2. 将 `shared_model.norm` 改为 `dyt`，重新运行同一 notebook，得到 DyT 归一化对比结果。
+3. 将 `shared_model.norm` 改为 `layernorm`，再次运行同一 notebook，得到标准归一化对比结果。
+4. 将 `shared_model.norm` 切回 `derf`，并把 `shared_model.freeze_strategy` 改为 `unfreeze_last_2`，再次运行同一 notebook，得到冻结策略消融结果。
+5. 每轮训练完成后，直接执行 notebook 末尾的对比单元；只要对应实验文件已生成，章节 7 会自动汇总归一化消融，章节 8 会自动汇总冻结策略消融。
+
+从当前版本开始，`notebooks/04_train_shared.ipynb` 会自动为每次实验生成独立命名的结果文件，不需要再手动另存。以主线默认配置为例，典型输出如下：
+
+- `checkpoints/shared_transformer_head_live_encoder_attention_derf_freeze_all.pth`
+- `checkpoints/shared_transformer_head_live_encoder_attention_derf_freeze_all_history.npz`
+- `checkpoints/shared_transformer_head_live_encoder_attention_derf_freeze_all_summary.json`
+- `checkpoints/shared_transformer_head_live_encoder_attention_derf_freeze_all_curves.png`
+- `checkpoints/shared_transformer_head_live_encoder_attention_derf_freeze_all_confusion_matrix.png`
+
+#### 6.3 Notebook 内置对比入口
+
+`notebooks/04_train_shared.ipynb` 末尾已经内置三类对比入口：
+
+1. 第 6 节“跨架构对比”比较 `CNN+BiLSTM+Attention` 与当前 `shared_model` 配置对应的 `Whisper+Transformer Emotion Head` 实验；在默认配置下，这一项就是 `Derf` 主线。
+2. 第 7 节“归一化消融对比”比较 `Derf / DyT / LayerNorm`，默认读取 `freeze_all` 条件下的实验结果。
+3. 第 8 节“冻结策略消融对比”比较 `Derf + freeze_all` 与 `Derf + unfreeze_last_2`。
+
+只要实验命名保持与 notebook 自动生成的规则一致，上述对比单元就会自动加载对应的 `history` 与 `summary` 文件，并输出验证曲线、测试指标汇总表，以及：
+
+- `checkpoints/model_comparison.png`
+- `checkpoints/shared_norm_ablation.png`
+- `checkpoints/shared_freeze_ablation.png`
+
+#### 6.4 如何让某个配置参与推理或界面展示
+
+推荐优先使用“直接指向实验文件”的方式切换共享模型：
+
+1. 先运行 `notebooks/04_train_shared.ipynb`，获得你需要的实验专属文件，例如 `checkpoints/shared_transformer_head_live_encoder_attention_dyt_freeze_all.pth`。
+2. 修改 `configs/config.yaml` 中的 `paths.best_shared_model`，直接指向该实验文件。
+3. 重新启动 `ui/app.py` 或重新创建推理 pipeline，使新路径生效。
+
+例如，要让 DyT 消融模型参与推理，可以写成：
+
+```yaml
+paths:
+  best_shared_model: "checkpoints/shared_transformer_head_live_encoder_attention_dyt_freeze_all.pth"
+```
+
+Whisper 特征缓存与元数据默认写入：
+
+- `data/features_shared/whisper_<size>_sequence_features.npy`
+- `data/features_shared/whisper_<size>_sequence_labels.npy`
+- `data/features_shared/whisper_<size>_sequence_lengths.npy`
+- `data/features_shared/whisper_<size>_sequence_meta.json`
+
+### 7. 启动图形界面
+
+当至少存在可用的情感模型权重后，即可启动 Gradio 界面。若仓库中已自带训练好的权重，也可以直接跳过训练步骤，先体验推理流程。
+
+```bash
 python ui/app.py
 ```
 
-运行提示：
+界面默认提供以下能力：
 
-- `预处理` 会在 `data/raw/` 下生成 `*_organized` 目录，并将预处理后的音频输出到 `data/processed/`。
-- `提取特征` 会将特征输出到 `data/features/{dataset}/mel|mfcc/`。
-- 若 `checkpoints/best_emotion.pth` 或 `checkpoints/best_shared.pth` 不存在，界面仍可启动，但情感模型会使用随机权重，结果不具备参考意义。
+- 录音或上传音频文件。
+- 在 `CNN+BiLSTM+Attention` 与 `Whisper+Norm-Free Transformer` 两条路线间切换。
+- 对同一段音频执行双模型对比分析。
+- 查看转写文本、情感高亮、雷达图、波形图、Mel 频谱图与历史趋势图。
 
-## 常见问题与排障
+### 8. 直接推理入口
 
-### 1) `libgomp: Invalid value for environment variable OMP_NUM_THREADS`
+如果希望在脚本中复用推理能力，可直接调用 `inference/pipeline.py` 中的 `EmotionAwareSpeechPipeline`。该类会统一加载 Whisper ASR、基线情感模型与主线情感模型，并输出标准化结果字典，包括文本、语言、分段信息、情感类别、情感概率、颜色编码、置信度与实际使用的模型名称。
 
-**现象**：运行预处理脚本或 notebook 时出现上述提示。
+## 架构图与时序图
 
-**原因**：OpenMP 运行库读取到非法的 `OMP_NUM_THREADS`（例如空字符串、非整数等），属于环境问题。
+### 系统架构图
 
-**处理**：
+```mermaid
+flowchart LR
+    subgraph Training[训练阶段]
+        A[多源情感语音数据集] --> B[数据整理与音频预处理]
+        B --> C[Mel / MFCC 特征提取]
+        B --> D[Whisper 音频或特征缓存]
+        C --> E[CNN+BiLSTM+Attention 训练]
+        D --> F[Whisper + Norm-Free Transformer Emotion Head 训练]
+        E --> G[checkpoints/best_emotion.pth]
+        F --> H[checkpoints/shared_*.pth]
+    end
 
-- 属于警告，可直接无视。
-
-### 2) `04_train_shared.ipynb` 的“准备数据集”阶段内存/资源占用高
-
-**现象**：首次提取 Whisper encoder 特征时内存占用大、GPU 利用率呈尖峰。
-
-**原因**：
-
-- 逐文件 I/O + 解码 + 特征计算存在 CPU/I/O 瓶颈。
-- 若将所有特征先堆在 Python list 再 `torch.stack`，会导致内存峰值很高。
-
-**解决**：
-
-- 使用 `preprocessing/whisper_feature_cache.py` 将 pooled 特征落盘缓存（memmap 写入），避免重复提取。
-- 用 `DataLoader(num_workers>0)` 并行读取音频，并在 GPU 端批量运行 encoder。
-
-**缓存位置**：
-
-- `data/features_shared/whisper_<size>_pooled_features.npy`
-- `data/features_shared/whisper_<size>_pooled_labels.npy`
-
-**如何强制重新提取**：删除上述缓存文件，或在 notebook 中设置 `overwrite=True`。
-
-### 3) GPU 利用率高但显存占用不高（提特征阶段）
-
-**解释**：前向推理 + `no_grad` + 混合精度会显著降低显存需求；同时工作负载可能是 compute-bound，因此出现“GPU 很忙但显存占用不高”。这属于正常现象。
-
-### 4) 训练阶段 GPU 利用率低但训练很快（共享编码器方案）
-
-**解释**：共享编码器方案在训练阶段只训练轻量 MLP 分类头；encoder 重计算已在“准备数据集/缓存特征”完成，因此训练阶段对 GPU 需求很小，速度快是预期行为。
-
-## 项目结构
-
+    subgraph Inference[推理阶段]
+        I[录音 / 上传音频] --> J[Gradio UI]
+        J --> K[EmotionAwareSpeechPipeline]
+        K --> L[Whisper ASR]
+        K --> M{SER 模型选择}
+        M --> N[CNN+BiLSTM+Attention]
+        M --> O[Whisper + Norm-Free Transformer]
+        L --> P[文本 / 语言 / 分段]
+        N --> Q[情感概率]
+        O --> Q
+        P --> R[结果融合与可视化]
+        Q --> R
+    end
 ```
- identifier/
- ├── configs/           # 配置文件（config.yaml 统一管理所有参数）
- ├── models/            # 模型定义（CNN+BiLSTM+Attention、Whisper 共享编码器）
- ├── preprocessing/     # 数据预处理（降噪/静音切除/定长）与特征提取（Mel/MFCC）
- ├── inference/         # 推理流水线（整合 Whisper ASR + SER，支持模型切换）
- ├── ui/                # Gradio 交互界面
- ├── notebooks/         # Jupyter 训练笔记本（推荐在 AutoDL 上运行）
- ├── utils/             # 工具函数（音频处理、可视化）
- ├── checkpoints/       # 训练产出的模型权重文件
- ├── data/              # 通过软链接接入，该文件不在本项目仓库中
- │   ├── raw/           # 原始数据集
- │   ├── processed/     # 预处理后的音频
- │   └── features/      # 提取的 Mel/MFCC 特征
- └── requirements.txt   # 依赖文件
+
+### 推理时序图
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant UI as Gradio 界面
+    participant P as EmotionAwareSpeechPipeline
+    participant A as Whisper ASR
+    participant S as SER 模型
+    participant V as 可视化模块
+
+    U->>UI: 录音或上传音频
+    UI->>P: process() / process_compare()
+    P->>A: transcribe(audio)
+    A-->>P: text, segments, language
+    alt 选择 CNN+BiLSTM+Attention
+        P->>S: 预处理音频 -> Mel -> predict_proba
+    else 选择 Whisper+Norm-Free Transformer
+        P->>S: Whisper log-mel -> predict_proba
+    end
+    S-->>P: emotion probabilities
+    P->>V: 组织文本、情感、图表数据
+    V-->>UI: HTML + Plotly 图表
+    UI-->>U: 展示识别结果与对比结果
 ```
+
+## 运行注意事项
+
+- `best_emotion.pth` 或 `paths.best_shared_model` 指向的共享模型权重缺失时，界面仍然可以打开，但情感输出可能来自随机权重，不能直接用于论文结论。
+- `Whisper + Normalization-Free Transformer Emotion Head` 的默认训练模式是 `live_encoder`，该模式最贴近实际主线实验，但显存与算力需求最高。
+- 主线默认 `norm=derf`，这对应无归一化 Transformer 路线；`LayerNorm` 与 `DyT` 仍保留为兼容和对比配置。
+- `cached_sequence` 可以降低重复编码开销，但因为序列特征已离线固定，训练阶段无法真正更新 Whisper 编码器。
+- `cached_pooled` 主要服务于旧版 `legacy_mlp` 路线，不能替代当前主线中的 Transformer Emotion Head。
+- `data/` 目录在很多部署环境中不会随仓库一并提供，开始训练前应先检查软链接或挂载路径是否正确。
+
+## 项目结构与文件组织
+
+```text
+Emotion-perception-driven-speech-recognition-system/
+├── README.md
+├── theory.md
+├── requirements.txt
+├── configs/
+│   └── config.yaml
+├── models/
+│   ├── emotion_cnn_bilstm.py
+│   └── whisper_emotion.py
+├── preprocessing/
+│   ├── audio_preprocess.py
+│   ├── feature_extract.py
+│   └── whisper_feature_cache.py
+├── inference/
+│   └── pipeline.py
+├── ui/
+│   └── app.py
+├── utils/
+│   ├── audio_utils.py
+│   ├── losses.py
+│   └── visualization.py
+├── notebooks/
+│   ├── 01_data_exploration.ipynb
+│   ├── 02_feature_analysis.ipynb
+│   ├── 03_train_emotion.ipynb
+│   └── 04_train_shared.ipynb
+├── checkpoints/
+│   ├── best_emotion.pth
+│   ├── best_shared.pth
+│   ├── shared_transformer_head_*.pth
+│   └── *.png / *.npz / *.json
+└── data/
+    ├── raw/
+    ├── processed/
+    ├── features/
+    └── features_shared/
+```
+
+- `configs/` 统一管理音频参数、情感标签、模型超参数、训练设置和路径配置，是所有脚本与笔记本的事实来源。
+- `models/` 存放两条 SER 路线的核心实现，其中 `emotion_cnn_bilstm.py` 是传统基线，`whisper_emotion.py` 是当前毕设主线。
+- `preprocessing/` 负责数据整理、音频预处理、常规特征提取与 Whisper 特征缓存。
+- `inference/` 提供统一推理流水线，负责把 Whisper ASR 与 SER 模块编排为完整的结果输出。
+- `ui/` 提供 Gradio 前端，便于演示录音、上传、单模型分析与双模型对比。
+- `utils/` 存放配置加载、音频读写、标签映射、损失函数和图表生成等通用工具。
+- `notebooks/` 承担探索性分析和训练实验，是论文复现与结果导出的主要入口。
+- `checkpoints/` 保存训练完成后的权重、曲线图、混淆矩阵和模型比较图。
+- `data/` 用于存放外部接入的数据集、预处理结果与特征缓存，通常不会完整随仓库版本管理。

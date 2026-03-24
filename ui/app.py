@@ -199,7 +199,7 @@ def build_legend_html():
 def create_app():
     with gr.Blocks(theme=THEME, css=CSS, title="情感语音识别系统") as app:
         gr.HTML('<div class="main-title"><h1>情感感知驱动的说话人语音识别系统</h1></div>')
-        gr.HTML('<div class="subtitle">基于 Whisper + Transformer 的语音识别与情感分析</div>')
+        gr.HTML('<div class="subtitle">基于 Whisper + 无归一化 Transformer 的语音识别与情感分析</div>')
         gr.HTML(build_legend_html())
 
         with gr.Row(equal_height=False):
@@ -221,7 +221,7 @@ def create_app():
                     choices=MODEL_CHOICES,
                     value=MODEL_CHOICES[0],
                     label="选择模型",
-                    info="CNN: 传统基线 | Whisper+Transformer: 毕设主线",
+                    info="CNN: 传统基线 | Whisper+Norm-Free Transformer: 毕设主线",
                 )
                 with gr.Row():
                     btn_mic = gr.Button("分析录音", variant="primary", size="sm")
@@ -267,7 +267,7 @@ def create_app():
         gr.Markdown(
             "---\n"
             "**毕业设计** | 情感类别: 高兴·愤怒·悲伤·中性·恐惧·惊讶 | "
-            "ASR: OpenAI Whisper | SER: CNN+BiLSTM+Attention · Whisper+Transformer"
+            "ASR: OpenAI Whisper | SER: CNN+BiLSTM+Attention · Whisper+Norm-Free Transformer"
         )
 
     return app

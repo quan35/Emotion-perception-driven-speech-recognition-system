@@ -1,21 +1,24 @@
 """
-主线模型：Whisper Encoder + Transformer Emotion Head
-=====================================================================
+主线模型：Whisper Encoder + Normalization-Free Transformer Emotion Head
+========================================================================
 
-基于预训练 Transformer 的迁移学习 SER 模型
+基于预训练 Transformer 的迁移学习 SER 模型。
 
 设计思路：
     与传统模型从零训练不同，主线模型采用 **迁移学习** 策略：
     - Whisper Encoder 在 68 万小时多样化音频上预训练，已学会提取丰富的通用声学特征
     - 在其输出序列之上，增加轻量 Transformer Emotion Head，专门建模情感时序依赖
+    - 主线默认采用 Derf（Dynamic Erf）无归一化设计，而非标准 LayerNorm
     - 通过 Attention Pooling 聚焦情感关键帧，避免平均池化的信息稀释
 
-    音频 → Whisper log-mel(80) → [Whisper Encoder] → Transformer Emotion Head
+    音频 → Whisper log-mel(80) → [Whisper Encoder]
+         → Normalization-Free Transformer Emotion Head (Derf)
          → Attention Pooling → 分类头 → 情感类别
 
-消融实验：
-    A. 归一化策略：LayerNorm / DyT / Derf
-    B. 微调策略：  freeze_all / unfreeze_last_2
+配置说明：
+    A. 主线默认归一化：Derf
+    B. 兼容/对比配置：LayerNorm / DyT
+    C. 微调策略：freeze_all / unfreeze_last_2
 
 总参数量: ~101M（其中可训练 ~14.6M，freeze_all 模式）
 """
@@ -43,7 +46,7 @@ DEFAULT_SHARED_MODEL_CONFIG = {
     "checkpoint_format": 2,
     "training_mode": "live_encoder",     # 直接输入音频，端到端前向
     "pooling": "attention",              # Attention Pooling
-    "norm": "layernorm",                 # 归一化策略（消融实验 A）
+    "norm": "derf",                      # 主线默认采用 Derf 无归一化设计
     "freeze_strategy": "freeze_all",     # 冻结策略（消融实验 B）
     "head_layers": 2,                    # Transformer Head 层数
     "head_hidden_dim": None,             # 默认与 Whisper enc_dim 一致（768）
@@ -85,7 +88,10 @@ def _infer_encoder_dim(encoder, whisper_size: Optional[str] = None) -> int:
 
 
 def _normalize_strategy(name: str) -> str:
-    return str(name).strip().lower()
+    name = str(name).strip().lower()
+    if name in {"default", "mainline", "normfree", "norm_free", "nf"}:
+        return "derf"
+    return name
 
 
 def _normalize_variant(name: str) -> str:
@@ -116,7 +122,7 @@ def _to_hidden_dims(hidden_dims: Iterable[int]) -> Sequence[int]:
 
 
 class DynamicTanh(nn.Module):
-    """DyT：无归一化 Transformer 方案（消融实验 A2）。
+    """DyT：无归一化 Transformer 对比方案。
 
     来自论文 "Transformers without Normalization"，
     用可学习的逐元素非线性变换替代 LayerNorm：
@@ -136,7 +142,7 @@ class DynamicTanh(nn.Module):
 
 
 class DynamicErf(nn.Module):
-    """Derf：更强的无归一化 Transformer 方案（消融实验 A3）。
+    """Derf：主线默认采用的无归一化 Transformer 方案。
 
     来自论文 "Stronger Normalization-Free Transformers"，
     在 DyT 基础上引入额外 shift 参数：
@@ -157,20 +163,21 @@ class DynamicErf(nn.Module):
 
 
 def build_norm(norm_type: str, hidden_dim: int) -> nn.Module:
-    """构建归一化模块（消融实验 A）。
+    """构建 Transformer Head 的预处理模块。
 
-    三种可替换的归一化策略，在 Transformer Block 的 Pre-Norm 位置使用：
-      - layernorm: 标准 LayerNorm（A1，默认）
-      - dyt:       DynamicTanh，无归一化 Transformer（A2）
-      - derf:      DynamicErf，更强的无归一化方案（A3）
+    当前主线默认采用 Derf，无归一化设计直接进入 Emotion Head。
+    为保持兼容性和后续对比实验能力，仍保留 LayerNorm 与 DyT 作为可选配置：
+      - derf:      DynamicErf，主线默认
+      - dyt:       DynamicTanh，无归一化对比方案
+      - layernorm: 标准 LayerNorm，兼容/对比方案
     """
     norm_type = _normalize_strategy(norm_type)
-    if norm_type == "layernorm":
-        return nn.LayerNorm(hidden_dim)
-    if norm_type == "dyt":
-        return DynamicTanh(hidden_dim)
     if norm_type == "derf":
         return DynamicErf(hidden_dim)
+    if norm_type == "dyt":
+        return DynamicTanh(hidden_dim)
+    if norm_type == "layernorm":
+        return nn.LayerNorm(hidden_dim)
     raise ValueError(f"不支持的 norm 类型: {norm_type}")
 
 
@@ -281,8 +288,8 @@ class EmotionTransformerBlock(nn.Module):
         x → Norm₁ → Multi-Head Self-Attention → Dropout → 残差相加
           → Norm₂ → FFN(Linear → GELU → Dropout → Linear) → Dropout → 残差相加
 
-    Pre-Norm 结构是归一化策略消融实验（A）的切入点：
-    Norm₁ 和 Norm₂ 可替换为 LayerNorm / DyT / Derf。
+    当前主线默认在 Norm₁ 和 Norm₂ 位置使用 Derf，
+    同时保留 LayerNorm / DyT 作为兼容和对比配置。
     """
     def __init__(self, hidden_dim: int, num_heads: int, ff_mult: int, dropout: float, norm_type: str):
         super().__init__()
@@ -336,6 +343,9 @@ class WhisperEmotionHead(nn.Module):
         Whisper Encoder → [线性投影] → N 层 Transformer Block(Pre-Norm)
                         → 输出归一化 → Attention Pooling → MLP 分类器
 
+        当前主线默认使用 Derf 作为无归一化设计，
+        因而可视为 Whisper + Normalization-Free Transformer Emotion Head。
+
         默认维度流：
           输入 Whisper mel:         (B, 80, 3000)
           Encoder 输出:             (B, 1500, 768)
@@ -356,7 +366,7 @@ class WhisperEmotionHead(nn.Module):
         variant: str = "legacy_mlp",
         freeze_strategy: Optional[str] = None,
         pooling: str = "attention",
-        norm: str = "layernorm",
+        norm: str = "derf",
         head_layers: int = 2,
         head_hidden_dim: Optional[int] = None,
         num_heads: int = 8,
@@ -421,7 +431,7 @@ class WhisperEmotionHead(nn.Module):
                 )
                 for _ in range(self.head_layers)
             ])
-            # 输出归一化（归一化策略由 norm_type 控制，消融实验 A）
+            # 输出阶段沿用主线默认 Derf，也兼容 LayerNorm / DyT 对比配置
             self.output_norm = build_norm(self.norm_type, self.head_hidden_dim)
             # Attention Pooling：聚焦情感关键帧
             self.pool = self._build_pool(self.pooling_type, self.head_hidden_dim, int(attention_pool_hidden))
