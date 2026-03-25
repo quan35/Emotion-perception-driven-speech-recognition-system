@@ -90,6 +90,8 @@ python preprocessing/feature_extract.py
 
 - `checkpoints/best_emotion.pth`
 
+当前 `notebooks/03_train_emotion.ipynb` 也固定采用 `speaker_group split`，并会覆盖 `emotion_history.npz` 与基线模型权重。因此如果你重新整理了数据，或想让主线与基线保持同一划分标准，应重新运行该 notebook，再执行跨架构对比。
+
 ### 6. 训练 Whisper 主线模型
 
 主线模型训练位于 `notebooks/04_train_shared.ipynb`。该笔记本默认读取 `configs/config.yaml` 中的 `shared_model` 配置，并使用 `Whisper + Normalization-Free Transformer Emotion Head` 路线。默认情况下，`training_mode=live_encoder`，表示直接输入音频并在线运行 Whisper 编码器，同时在 Emotion Head 中采用 `Derf` 作为主线默认无归一化设计。如果 GPU 显存或 I/O 受限，可以切换为 `cached_sequence` 以缓存序列特征；如果只是兼容旧版共享编码器基线，则可以使用 `cached_pooled`，但该模式不属于当前论文主线。
@@ -121,6 +123,22 @@ shared_model:
 - `norm: "dyt"`：无归一化对比配置，可作为归一化消融实验之一。
 - `norm: "layernorm"`：标准归一化对比配置，可作为归一化消融实验之一。
 
+如果你使用类似 `16` 核 CPU 与 `24GB` 显存 `RTX 4090` 的训练环境，建议同时在 `training` 段落中启用较积极的 `live_encoder` 吞吐配置：
+
+```yaml
+training:
+  live_encoder_batch_size: 16
+  live_encoder_eval_batch_size: 16
+  live_encoder_num_workers: 8
+  live_encoder_eval_num_workers: 8
+  live_encoder_prefetch_factor: 4
+  live_encoder_eval_prefetch_factor: 4
+  live_encoder_persistent_workers: true
+  live_encoder_eval_persistent_workers: true
+```
+
+这些参数分别控制 `live_encoder` 训练批大小、验证批大小、DataLoader 并行读取进程数、预取深度以及 worker 常驻策略。如果出现显存不足，可以优先把 `live_encoder_batch_size` 从 `16` 降到 `12` 或 `8`；如果 CPU 或磁盘压力过高，则把 `live_encoder_num_workers` 和 `live_encoder_eval_num_workers` 下调到 `4`。
+
 #### 6.2 归一化与冻结策略消融的推荐操作流程
 
 若要系统比较 `Derf`、`DyT`、`LayerNorm` 以及不同冻结策略，建议按下面的顺序执行：
@@ -130,6 +148,8 @@ shared_model:
 3. 将 `shared_model.norm` 改为 `layernorm`，再次运行同一 notebook，得到标准归一化对比结果。
 4. 将 `shared_model.norm` 切回 `derf`，并把 `shared_model.freeze_strategy` 改为 `unfreeze_last_2`，再次运行同一 notebook，得到冻结策略消融结果。
 5. 每轮训练完成后，直接执行 notebook 末尾的对比单元；只要对应实验文件已生成，章节 7 会自动汇总归一化消融，章节 8 会自动汇总冻结策略消融。
+
+当前默认训练划分为 `speaker_group split`。因此同一说话人的样本不会同时落入训练集、验证集与测试集。实验文件名仍沿用原有命名规则，不额外附加划分后缀；重新训练后，新结果会直接覆盖旧的同名实验文件。
 
 从当前版本开始，`notebooks/04_train_shared.ipynb` 会自动为每次实验生成独立命名的结果文件，不需要再手动另存。以主线默认配置为例，典型输出如下：
 

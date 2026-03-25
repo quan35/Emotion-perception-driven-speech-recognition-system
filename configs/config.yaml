@@ -34,7 +34,7 @@ shared_model:
   training_mode: "live_encoder"
   pooling: "attention"
   norm: "derf" # "derf" "dyt" "layernorm"
-  freeze_strategy: "unfreeze_last_2"
+  freeze_strategy: "freeze_all" # "freeze_all" "unfreeze_last_2"
   head_layers: 2
   head_hidden_dim: 768
   num_heads: 8
@@ -50,10 +50,18 @@ training:
   whisper_feature_batch_size: 64
   whisper_feature_num_workers: 8
   whisper_feature_prefetch_factor: 2
+  live_encoder_batch_size: 16
+  live_encoder_eval_batch_size: 16
+  live_encoder_num_workers: 8
+  live_encoder_eval_num_workers: 8
+  live_encoder_prefetch_factor: 4
+  live_encoder_eval_prefetch_factor: 4
+  live_encoder_persistent_workers: true
+  live_encoder_eval_persistent_workers: true
   epochs: 100
   learning_rate: 0.0005
   weight_decay: 0.00001
-  patience: 15
+  patience: 10
   train_ratio: 0.8
   val_ratio: 0.1
   test_ratio: 0.1
