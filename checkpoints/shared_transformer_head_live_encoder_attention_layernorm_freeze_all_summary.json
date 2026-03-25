@@ -1,0 +1,17 @@
+{
+  "experiment_name": "shared_transformer_head_live_encoder_attention_layernorm_freeze_all",
+  "variant": "transformer_head",
+  "training_mode": "live_encoder",
+  "norm": "layernorm",
+  "pooling": "attention",
+  "freeze_strategy": "freeze_all",
+  "epochs_ran": 18,
+  "best_val_loss": 0.3333567839630811,
+  "best_val_acc": 0.906807804068078,
+  "test_acc": 0.8767634854771784,
+  "macro_f1": 0.8616947593596064,
+  "weighted_f1": 0.8764147041635305,
+  "uar": 0.8586925547745309,
+  "checkpoint_filename": "shared_transformer_head_live_encoder_attention_layernorm_freeze_all.pth",
+  "history_filename": "shared_transformer_head_live_encoder_attention_layernorm_freeze_all_history.npz"
+}

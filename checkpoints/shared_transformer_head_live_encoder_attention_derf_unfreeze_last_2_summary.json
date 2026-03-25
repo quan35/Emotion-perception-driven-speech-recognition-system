@@ -1,0 +1,17 @@
+{
+  "experiment_name": "shared_transformer_head_live_encoder_attention_derf_unfreeze_last_2",
+  "variant": "transformer_head",
+  "training_mode": "live_encoder",
+  "norm": "derf",
+  "pooling": "attention",
+  "freeze_strategy": "unfreeze_last_2",
+  "epochs_ran": 17,
+  "best_val_loss": 0.33535185281841423,
+  "best_val_acc": 0.9171855541718555,
+  "test_acc": 0.8788381742738589,
+  "macro_f1": 0.8584613830360318,
+  "weighted_f1": 0.878858171534163,
+  "uar": 0.847252730058557,
+  "checkpoint_filename": "shared_transformer_head_live_encoder_attention_derf_unfreeze_last_2.pth",
+  "history_filename": "shared_transformer_head_live_encoder_attention_derf_unfreeze_last_2_history.npz"
+}

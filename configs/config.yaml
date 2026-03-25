@@ -33,8 +33,8 @@ shared_model:
   checkpoint_format: 2
   training_mode: "live_encoder"
   pooling: "attention"
-  norm: "derf" # "dyt" "layernorm"
-  freeze_strategy: "freeze_all"
+  norm: "derf" # "derf" "dyt" "layernorm"
+  freeze_strategy: "unfreeze_last_2"
   head_layers: 2
   head_hidden_dim: 768
   num_heads: 8

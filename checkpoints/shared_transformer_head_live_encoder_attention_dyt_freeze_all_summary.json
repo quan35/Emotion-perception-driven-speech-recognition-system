@@ -1,0 +1,17 @@
+{
+  "experiment_name": "shared_transformer_head_live_encoder_attention_dyt_freeze_all",
+  "variant": "transformer_head",
+  "training_mode": "live_encoder",
+  "norm": "dyt",
+  "pooling": "attention",
+  "freeze_strategy": "freeze_all",
+  "epochs_ran": 18,
+  "best_val_loss": 0.3375888534876854,
+  "best_val_acc": 0.9034869240348692,
+  "test_acc": 0.8788381742738589,
+  "macro_f1": 0.8625055659583087,
+  "weighted_f1": 0.8789152080951707,
+  "uar": 0.8697871899764412,
+  "checkpoint_filename": "shared_transformer_head_live_encoder_attention_dyt_freeze_all.pth",
+  "history_filename": "shared_transformer_head_live_encoder_attention_dyt_freeze_all_history.npz"
+}
