@@ -75,6 +75,22 @@ def _encoded_length_from_num_samples(num_samples: int) -> int:
     return min(WHISPER_ENCODED_FRAMES, int(np.ceil(mel_frames / 2.0)))
 
 
+def _target_encoded_length_from_max_duration(max_duration_seconds: Optional[float]) -> int:
+    if max_duration_seconds is None:
+        return WHISPER_ENCODED_FRAMES
+
+    try:
+        duration_seconds = float(max_duration_seconds)
+    except (TypeError, ValueError):
+        return WHISPER_ENCODED_FRAMES
+
+    if duration_seconds <= 0:
+        return WHISPER_ENCODED_FRAMES
+
+    target_num_samples = int(round(duration_seconds * WHISPER_SAMPLE_RATE))
+    return max(1, min(WHISPER_ENCODED_FRAMES, _encoded_length_from_num_samples(target_num_samples)))
+
+
 def _validate_existing_cache(meta: Dict[str, object], feature_type: str, whisper_size: str) -> None:
     existing_type = meta.get("feature_type")
     if existing_type is not None and existing_type != feature_type:
@@ -375,11 +391,16 @@ def extract_whisper_sequence_features(
     overwrite: bool = False,
     num_workers: int = 0,
     prefetch_factor: int = 2,
+    max_duration_seconds: Optional[float] = None,
 ) -> Tuple[str, str, str, str]:
     """Extract sequence Whisper encoder features and cache to disk."""
 
     os.makedirs(out_dir, exist_ok=True)
     paths = _cache_paths(out_dir, whisper_size, FEATURE_TYPE_SEQUENCE)
+    n = len(samples)
+    np_dtype = _resolve_np_dtype(feature_dtype)
+    requested_dtype = np.dtype(np_dtype).name
+    target_seq_len = _target_encoded_length_from_max_duration(max_duration_seconds)
 
     if (
         not overwrite
@@ -389,18 +410,46 @@ def extract_whisper_sequence_features(
         and os.path.isfile(paths["meta"])
     ):
         meta = _read_cache_meta(paths["meta"])
-        _validate_existing_cache(meta, FEATURE_TYPE_SEQUENCE, whisper_size)
-        return paths["features"], paths["labels"], paths["lengths"], paths["meta"]
+        existing_feature_type = str(meta.get("feature_type", "")).strip().lower()
+        existing_whisper_size = str(meta.get("whisper_size", "")).strip().lower()
+        existing_seq_len = int(meta.get("seq_len", meta.get("cache_seq_len", -1)))
+        existing_num_samples = int(meta.get("num_samples", -1))
+        existing_dtype = str(meta.get("feature_dtype", "")).strip().lower()
+
+        if (
+            existing_feature_type == FEATURE_TYPE_SEQUENCE
+            and existing_whisper_size == str(whisper_size).strip().lower()
+            and existing_seq_len == target_seq_len
+            and existing_num_samples == n
+            and existing_dtype == requested_dtype
+        ):
+            return paths["features"], paths["labels"], paths["lengths"], paths["meta"]
+
+        print(
+            "检测到旧版或不兼容的 cached_sequence 缓存，"
+            "将按当前 max_duration 与 dtype 重新生成。"
+        )
 
     whisper_model = whisper.load_model(whisper_size, device=device)
     encoder = whisper_model.encoder
     encoder.eval()
 
-    seq_len, enc_dim = _infer_encoder_shape(encoder)
-    n = len(samples)
-    np_dtype = _resolve_np_dtype(feature_dtype)
+    full_encoder_seq_len, enc_dim = _infer_encoder_shape(encoder)
+    cache_seq_len = min(full_encoder_seq_len, target_seq_len)
+    estimated_feature_bytes = n * cache_seq_len * enc_dim * np.dtype(np_dtype).itemsize
+    estimated_total_bytes = estimated_feature_bytes + (n * 8) + (n * 4)
 
-    features_mm = np.lib.format.open_memmap(paths["features"], mode="w+", dtype=np_dtype, shape=(n, seq_len, enc_dim))
+    print(
+        f"cached_sequence 目标序列长度: {cache_seq_len}/{full_encoder_seq_len} 帧 | "
+        f"预计缓存占用: {estimated_total_bytes / (1024 ** 3):.2f} GiB"
+    )
+
+    features_mm = np.lib.format.open_memmap(
+        paths["features"],
+        mode="w+",
+        dtype=np_dtype,
+        shape=(n, cache_seq_len, enc_dim),
+    )
     labels_mm = np.lib.format.open_memmap(paths["labels"], mode="w+", dtype=np.int64, shape=(n,))
     lengths_mm = np.lib.format.open_memmap(paths["lengths"], mode="w+", dtype=np.int32, shape=(n,))
     loader = _build_whisper_dataloader(samples, batch_size, device, num_workers, prefetch_factor)
@@ -412,7 +461,9 @@ def extract_whisper_sequence_features(
             mel_batch, encoded_lengths = _build_mel_batch(audios, srs, device)
             with torch.amp.autocast("cuda", enabled=amp_enabled):
                 feats = encoder(mel_batch)
+            feats = feats[:, :cache_seq_len, :]
             feats = feats.detach().cpu().numpy().astype(np_dtype, copy=False)
+            encoded_lengths = [min(int(length), cache_seq_len) for length in encoded_lengths]
 
             bsz = int(labels.shape[0])
             features_mm[idx : idx + bsz] = feats
@@ -432,9 +483,11 @@ def extract_whisper_sequence_features(
         "feature_type": FEATURE_TYPE_SEQUENCE,
         "whisper_size": whisper_size,
         "num_samples": n,
-        "seq_len": seq_len,
+        "seq_len": cache_seq_len,
+        "full_encoder_seq_len": full_encoder_seq_len,
         "enc_dim": enc_dim,
-        "feature_dtype": feature_dtype,
+        "feature_dtype": requested_dtype,
+        "max_duration_seconds": float(max_duration_seconds) if max_duration_seconds is not None else None,
     }
     _write_cache_meta(paths["meta"], meta)
 
@@ -532,6 +585,7 @@ def prepare_whisper_training_data(
             overwrite=overwrite,
             num_workers=num_workers,
             prefetch_factor=prefetch_factor,
+            max_duration_seconds=cfg.get("audio", {}).get("max_duration"),
         )
         meta = _read_cache_meta(meta_path)
         meta["training_mode"] = TRAINING_MODE_CACHED_SEQUENCE

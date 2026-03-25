@@ -1,0 +1,27 @@
+{
+  "experiment_name": "shared_transformer_head_cached_sequence_attention_derf_freeze_all",
+  "variant": "transformer_head",
+  "training_mode": "cached_sequence",
+  "split_meta": {
+    "total_samples": 48187,
+    "total_groups": 71,
+    "train_samples": 37852,
+    "val_samples": 4556,
+    "test_samples": 5779,
+    "train_groups": 55,
+    "val_groups": 8,
+    "test_groups": 8
+  },
+  "norm": "derf",
+  "pooling": "attention",
+  "freeze_strategy": "freeze_all",
+  "epochs_ran": 11,
+  "best_val_loss": 0.9007995097560251,
+  "best_val_acc": 0.6806409130816505,
+  "test_acc": 0.7175982003806887,
+  "macro_f1": 0.6599061719379479,
+  "weighted_f1": 0.6965197103222674,
+  "uar": 0.6782268017846516,
+  "checkpoint_filename": "shared_transformer_head_cached_sequence_attention_derf_freeze_all.pth",
+  "history_filename": "shared_transformer_head_cached_sequence_attention_derf_freeze_all_history.npz"
+}

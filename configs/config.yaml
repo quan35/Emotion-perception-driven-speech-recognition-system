@@ -31,10 +31,10 @@ model:
 shared_model:
   variant: "transformer_head"
   checkpoint_format: 2
-  training_mode: "live_encoder"
+  training_mode: "live_encoder" # "live_encoder" "cached_sequence"
   pooling: "attention"
   norm: "derf" # "derf" "dyt" "layernorm"
-  freeze_strategy: "freeze_all" # "freeze_all" "unfreeze_last_2"
+  freeze_strategy: "unfreeze_last_2" # "freeze_all" "unfreeze_last_2"
   head_layers: 2
   head_hidden_dim: 768
   num_heads: 8

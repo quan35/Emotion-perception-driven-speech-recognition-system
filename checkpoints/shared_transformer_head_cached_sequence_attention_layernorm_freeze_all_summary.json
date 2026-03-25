@@ -1,0 +1,27 @@
+{
+  "experiment_name": "shared_transformer_head_cached_sequence_attention_layernorm_freeze_all",
+  "variant": "transformer_head",
+  "training_mode": "cached_sequence",
+  "split_meta": {
+    "total_samples": 48187,
+    "total_groups": 71,
+    "train_samples": 37852,
+    "val_samples": 4556,
+    "test_samples": 5779,
+    "train_groups": 55,
+    "val_groups": 8,
+    "test_groups": 8
+  },
+  "norm": "layernorm",
+  "pooling": "attention",
+  "freeze_strategy": "freeze_all",
+  "epochs_ran": 11,
+  "best_val_loss": 0.9301373454904849,
+  "best_val_acc": 0.6795434591747147,
+  "test_acc": 0.6840283786122167,
+  "macro_f1": 0.6472296659177658,
+  "weighted_f1": 0.6716543974309666,
+  "uar": 0.655807731110725,
+  "checkpoint_filename": "shared_transformer_head_cached_sequence_attention_layernorm_freeze_all.pth",
+  "history_filename": "shared_transformer_head_cached_sequence_attention_layernorm_freeze_all_history.npz"
+}

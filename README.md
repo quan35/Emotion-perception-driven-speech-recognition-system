@@ -94,7 +94,7 @@ python preprocessing/feature_extract.py
 
 ### 6. 训练 Whisper 主线模型
 
-主线模型训练位于 `notebooks/04_train_shared.ipynb`。该笔记本默认读取 `configs/config.yaml` 中的 `shared_model` 配置，并使用 `Whisper + Normalization-Free Transformer Emotion Head` 路线。默认情况下，`training_mode=live_encoder`，表示直接输入音频并在线运行 Whisper 编码器，同时在 Emotion Head 中采用 `Derf` 作为主线默认无归一化设计。如果 GPU 显存或 I/O 受限，可以切换为 `cached_sequence` 以缓存序列特征；如果只是兼容旧版共享编码器基线，则可以使用 `cached_pooled`，但该模式不属于当前论文主线。
+主线模型训练位于 `notebooks/04_train_shared.ipynb`。该笔记本默认读取 `configs/config.yaml` 中的 `shared_model` 配置，并使用 `Whisper + Normalization-Free Transformer Emotion Head` 路线。默认情况下，`training_mode=live_encoder`，表示直接输入音频并在线运行 Whisper 编码器，同时在 Emotion Head 中采用 `Derf` 作为主线默认无归一化设计。如果 GPU 显存或 I/O 受限，可以切换为 `cached_sequence` 以缓存序列特征；当前版本会按照 `audio.max_duration` 对应的有效帧长度截断缓存，而不是按 Whisper `30s` 全长保存，从而避免生成过大的 `sequence_features.npy`。如果只是兼容旧版共享编码器基线，则可以使用 `cached_pooled`，但该模式不属于当前论文主线。
 
 当前代码结构里：
 
@@ -141,13 +141,25 @@ training:
 
 #### 6.2 归一化与冻结策略消融的推荐操作流程
 
-若要系统比较 `Derf`、`DyT`、`LayerNorm` 以及不同冻结策略，建议按下面的顺序执行：
+归一化消融，比较 `Derf`、`DyT`、`LayerNorm` ：
 
-1. 先在 `configs/config.yaml` 中把 `shared_model.norm` 设为 `derf`、`shared_model.freeze_strategy` 设为 `freeze_all`，运行 `notebooks/04_train_shared.ipynb`，得到主线结果。
-2. 将 `shared_model.norm` 改为 `dyt`，重新运行同一 notebook，得到 DyT 归一化对比结果。
-3. 将 `shared_model.norm` 改为 `layernorm`，再次运行同一 notebook，得到标准归一化对比结果。
-4. 将 `shared_model.norm` 切回 `derf`，并把 `shared_model.freeze_strategy` 改为 `unfreeze_last_2`，再次运行同一 notebook，得到冻结策略消融结果。
-5. 每轮训练完成后，直接执行 notebook 末尾的对比单元；只要对应实验文件已生成，章节 7 会自动汇总归一化消融，章节 8 会自动汇总冻结策略消融。
+1. 在 `configs/config.yaml` 中：
+    `shared_model.training_mode` 设为 `cached_sequence`
+    `shared_model.norm` 设为 `derf`
+    `shared_model.freeze_strategy` 设为 `freeze_all`
+    运行 `notebooks/04_train_shared.ipynb`，得到 Derf 结果。
+3. 将 `shared_model.norm` 改为 `dyt`，重新运行同一 notebook，得到 DyT 归一化对比结果。
+4. 将 `shared_model.norm` 改为 `layernorm`，再次运行同一 notebook，得到标准归一化对比结果。
+
+冻结策略消融，比较 `freeze_all`、`unfreeze_last_2`
+1. 在 `configs/config.yaml` 中：
+    `shared_model.training_mode` 设为 `live_encoder`
+    `shared_model.norm` 设为 `derf`
+    `shared_model.freeze_strategy` 设为 `freeze_all`
+    运行 `notebooks/04_train_shared.ipynb`，得到 freeze_all 结果。
+2. 将 `shared_model.freeze_strategy` 改为 `unfreeze_last_2`，再次运行同一 notebook，得到冻结策略消融结果。
+
+每轮训练完成后，直接执行 notebook 末尾的对比单元；只要对应实验文件已生成，章节 7 会自动汇总归一化消融，章节 8 会自动汇总冻结策略消融。
 
 当前默认训练划分为 `speaker_group split`。因此同一说话人的样本不会同时落入训练集、验证集与测试集。实验文件名仍沿用原有命名规则，不额外附加划分后缀；重新训练后，新结果会直接覆盖旧的同名实验文件。
 
@@ -276,7 +288,7 @@ sequenceDiagram
 - `best_emotion.pth` 或 `paths.best_shared_model` 指向的共享模型权重缺失时，界面仍然可以打开，但情感输出可能来自随机权重，不能直接用于论文结论。
 - `Whisper + Normalization-Free Transformer Emotion Head` 的默认训练模式是 `live_encoder`，该模式最贴近实际主线实验，但显存与算力需求最高。
 - 主线默认 `norm=derf`，这对应无归一化 Transformer 路线；`LayerNorm` 与 `DyT` 仍保留为兼容和对比配置。
-- `cached_sequence` 可以降低重复编码开销，但因为序列特征已离线固定，训练阶段无法真正更新 Whisper 编码器。
+- `cached_sequence` 可以降低重复编码开销，但因为序列特征已离线固定，训练阶段无法真正更新 Whisper 编码器；首次运行会根据 `audio.max_duration` 生成截断后的序列缓存，若检测到旧版全长缓存则会自动重建。
 - `cached_pooled` 主要服务于旧版 `legacy_mlp` 路线，不能替代当前主线中的 Transformer Emotion Head。
 - `data/` 目录在很多部署环境中不会随仓库一并提供，开始训练前应先检查软链接或挂载路径是否正确。
 
