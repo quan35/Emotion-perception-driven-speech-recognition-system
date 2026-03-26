@@ -34,12 +34,12 @@ shared_model:
   training_mode: "live_encoder" # "live_encoder" "cached_sequence"
   pooling: "attention"
   norm: "derf" # "derf" "dyt" "layernorm"
-  freeze_strategy: "unfreeze_last_2" # "freeze_all" "unfreeze_last_2"
+  freeze_strategy: "freeze_all" # "freeze_all" "unfreeze_last_2"
   head_layers: 2
   head_hidden_dim: 768
   num_heads: 8
   ff_mult: 4
-  dropout: 0.1
+  dropout: 0.2
   classifier_hidden: 256
   attention_pool_hidden: 256
   legacy_hidden_dims: [256, 64]
@@ -59,15 +59,27 @@ training:
   live_encoder_persistent_workers: true
   live_encoder_eval_persistent_workers: true
   epochs: 100
-  learning_rate: 0.0005
-  weight_decay: 0.00001
+  learning_rate: 0.0002
+  head_learning_rate: 0.0002
+  encoder_learning_rate: 0.00002
+  weight_decay: 0.0001
   patience: 10
+  scheduler_patience: 5
+  scheduler_factor: 0.5
   train_ratio: 0.8
   val_ratio: 0.1
   test_ratio: 0.1
   seed: 42
-  label_smoothing: 0.0
+  label_smoothing: 0.05
   warmup_epochs: 3
+  cached_sequence_dropout: 0.3
+  cached_sequence_head_learning_rate: 0.00008
+  cached_sequence_weight_decay: 0.0005
+  cached_sequence_label_smoothing: 0.1
+  cached_sequence_warmup_epochs: 5
+  cached_sequence_patience: 10
+  cached_sequence_scheduler_patience: 5
+  cached_sequence_scheduler_factor: 0.5
   focal_loss: false
   focal_gamma: 2.0
 

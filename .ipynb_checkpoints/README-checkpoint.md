@@ -92,6 +92,8 @@ python preprocessing/feature_extract.py
 
 当前 `notebooks/03_train_emotion.ipynb` 也固定采用 `speaker_group split`，并会覆盖 `emotion_history.npz` 与基线模型权重。因此如果你重新整理了数据，或想让主线与基线保持同一划分标准，应重新运行该 notebook，再执行跨架构对比。
 
+当前版本中，`best_emotion.pth` 按最高 `val_acc` 选择；如果多个 epoch 的 `val_acc` 相同，则再以更低的 `val_loss` 作为并列判定条件。
+
 ### 6. 训练 Whisper 主线模型
 
 主线模型训练位于 `notebooks/04_train_shared.ipynb`。该笔记本默认读取 `configs/config.yaml` 中的 `shared_model` 配置，并使用 `Whisper + Normalization-Free Transformer Emotion Head` 路线。默认情况下，`training_mode=live_encoder`，表示直接输入音频并在线运行 Whisper 编码器，同时在 Emotion Head 中采用 `Derf` 作为主线默认无归一化设计。如果 GPU 显存或 I/O 受限，可以切换为 `cached_sequence` 以缓存序列特征；当前版本会按照 `audio.max_duration` 对应的有效帧长度截断缓存，而不是按 Whisper `30s` 全长保存，从而避免生成过大的 `sequence_features.npy`。如果只是兼容旧版共享编码器基线，则可以使用 `cached_pooled`，但该模式不属于当前论文主线。
@@ -138,6 +140,12 @@ training:
 ```
 
 这些参数分别控制 `live_encoder` 训练批大小、验证批大小、DataLoader 并行读取进程数、预取深度以及 worker 常驻策略。如果出现显存不足，可以优先把 `live_encoder_batch_size` 从 `16` 降到 `12` 或 `8`；如果 CPU 或磁盘压力过高，则把 `live_encoder_num_workers` 和 `live_encoder_eval_num_workers` 下调到 `4`。
+
+当前版本同时把主线默认训练超参数调整为更稳健的设置，即 `shared_model.dropout=0.2`、`training.learning_rate=2e-4`、`training.weight_decay=1e-4` 与 `training.label_smoothing=0.05`。对于 `live_encoder + unfreeze_last_2`，notebook 会进一步自动把优化器拆分为 `head` 与 `encoder` 两组参数，并对 Whisper 编码器使用更小的 `encoder_learning_rate`，同时在前 `warmup_epochs` 轮执行学习率 warmup，以减轻微调初期的不稳定震荡。
+
+如果采用 `cached_sequence` 做归一化消融，则 notebook 还支持 `training.cached_sequence_*` 形式的模式专属覆盖项，例如 `cached_sequence_head_learning_rate`、`cached_sequence_weight_decay`、`cached_sequence_label_smoothing`、`cached_sequence_warmup_epochs`、`cached_sequence_patience` 与 `cached_sequence_dropout`。当前默认值已经被调为比 `live_encoder` 更保守的组合，用于抑制离线序列特征场景下首轮之后迅速过拟合的问题。训练日志中若出现前几轮学习率逐步升高，例如 `6.67e-05 -> 1.33e-04 -> 2.00e-04`，这正是 warmup 正在生效，而不是 warmup 缺失。
+
+共享模型训练完成后，`notebooks/04_train_shared.ipynb` 现在会按最高 `val_acc` 选择 best checkpoint；若多个 epoch 的 `val_acc` 相同，则再用更低的 `val_loss` 作为并列条件下的判定标准。
 
 #### 6.2 归一化与冻结策略消融的推荐操作流程
 

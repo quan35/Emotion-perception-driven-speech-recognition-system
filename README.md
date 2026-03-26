@@ -143,6 +143,8 @@ training:
 
 当前版本同时把主线默认训练超参数调整为更稳健的设置，即 `shared_model.dropout=0.2`、`training.learning_rate=2e-4`、`training.weight_decay=1e-4` 与 `training.label_smoothing=0.05`。对于 `live_encoder + unfreeze_last_2`，notebook 会进一步自动把优化器拆分为 `head` 与 `encoder` 两组参数，并对 Whisper 编码器使用更小的 `encoder_learning_rate`，同时在前 `warmup_epochs` 轮执行学习率 warmup，以减轻微调初期的不稳定震荡。
 
+如果采用 `cached_sequence` 做归一化消融，则 notebook 还支持 `training.cached_sequence_*` 形式的模式专属覆盖项，例如 `cached_sequence_head_learning_rate`、`cached_sequence_weight_decay`、`cached_sequence_label_smoothing`、`cached_sequence_warmup_epochs`、`cached_sequence_patience` 与 `cached_sequence_dropout`。当前默认值已经被调为比 `live_encoder` 更保守的组合，用于抑制离线序列特征场景下首轮之后迅速过拟合的问题。训练日志中若出现前几轮学习率逐步升高，例如 `6.67e-05 -> 1.33e-04 -> 2.00e-04`，这正是 warmup 正在生效，而不是 warmup 缺失。
+
 共享模型训练完成后，`notebooks/04_train_shared.ipynb` 现在会按最高 `val_acc` 选择 best checkpoint；若多个 epoch 的 `val_acc` 相同，则再用更低的 `val_loss` 作为并列条件下的判定标准。
 
 #### 6.2 归一化与冻结策略消融的推荐操作流程
