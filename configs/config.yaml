@@ -70,6 +70,8 @@ training:
   val_ratio: 0.1
   test_ratio: 0.1
   seed: 42
+  best_metric: "uar"
+  esd_epoch_cap: 10000
   label_smoothing: 0.05
   warmup_epochs: 3
   cached_sequence_dropout: 0.3

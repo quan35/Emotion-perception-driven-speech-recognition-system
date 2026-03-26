@@ -145,7 +145,7 @@ training:
 
 如果采用 `cached_sequence` 做归一化消融，则 notebook 还支持 `training.cached_sequence_*` 形式的模式专属覆盖项，例如 `cached_sequence_head_learning_rate`、`cached_sequence_weight_decay`、`cached_sequence_label_smoothing`、`cached_sequence_warmup_epochs`、`cached_sequence_patience` 与 `cached_sequence_dropout`。当前默认值已经被调为比 `live_encoder` 更保守的组合，用于抑制离线序列特征场景下首轮之后迅速过拟合的问题。训练日志中若出现前几轮学习率逐步升高，例如 `6.67e-05 -> 1.33e-04 -> 2.00e-04`，这正是 warmup 正在生效，而不是 warmup 缺失。
 
-共享模型训练完成后，`notebooks/04_train_shared.ipynb` 现在会按最高 `val_acc` 选择 best checkpoint；若多个 epoch 的 `val_acc` 相同，则再用更低的 `val_loss` 作为并列条件下的判定标准。
+共享模型训练完成后，`notebooks/04_train_shared.ipynb` 现在会按最高 `val_uar` 选择 best checkpoint；若多个 epoch 的 `val_uar` 相同，则再用更低的 `val_loss` 作为并列条件下的判定标准。与此同时，共享模型训练链路默认使用带类别权重的 `CrossEntropyLoss`，并支持通过 `training.esd_epoch_cap` 为每个 epoch 设置 `ESD` 样本硬上限，以降低单一语料库在训练分布中的主导效应。
 
 #### 6.2 归一化与冻结策略消融的推荐操作流程
 
