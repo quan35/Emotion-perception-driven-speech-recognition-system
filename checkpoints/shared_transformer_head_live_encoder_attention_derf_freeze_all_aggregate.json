@@ -1,0 +1,56 @@
+{
+  "protocol_version": 2,
+  "experiment_stem": "shared_transformer_head_live_encoder_attention_derf_freeze_all",
+  "included_subsets": [
+    "ravdess",
+    "casia",
+    "esd",
+    "emodb",
+    "iemocap"
+  ],
+  "auxiliary_subsets": [
+    "tess"
+  ],
+  "num_seeds": 1,
+  "seeds": [],
+  "source_summary_filenames": [
+    "shared_transformer_head_live_encoder_attention_derf_freeze_all_summary.json"
+  ],
+  "aggregate_mean_std": {
+    "best_val_loss": {
+      "mean": 1.001779893982395,
+      "std": 0.0
+    },
+    "best_val_acc": {
+      "mean": 0.7095253576072822,
+      "std": 0.0
+    },
+    "selected_val_uar": {
+      "mean": 0.6690331995862571,
+      "std": 0.0
+    },
+    "test_acc": {
+      "mean": 0.6585782638414217,
+      "std": 0.0
+    },
+    "macro_f1": {
+      "mean": 0.6080810849253505,
+      "std": 0.0
+    },
+    "weighted_f1": {
+      "mean": 0.6433608519443778,
+      "std": 0.0
+    },
+    "uar": {
+      "mean": 0.6150231073666753,
+      "std": 0.0
+    }
+  },
+  "best_val_loss": 1.001779893982395,
+  "best_val_acc": 0.7095253576072822,
+  "selected_val_uar": 0.6690331995862571,
+  "test_acc": 0.6585782638414217,
+  "macro_f1": 0.6080810849253505,
+  "weighted_f1": 0.6433608519443778,
+  "uar": 0.6150231073666753
+}

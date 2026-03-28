@@ -1,0 +1,51 @@
+{
+  "protocol_version": 2,
+  "experiment_stem": "shared_transformer_head_cached_sequence_attention_dyt_freeze_all",
+  "included_subsets": [
+    "ravdess",
+    "casia",
+    "esd",
+    "emodb",
+    "iemocap"
+  ],
+  "auxiliary_subsets": [
+    "tess"
+  ],
+  "num_seeds": 1,
+  "seeds": [],
+  "source_summary_filenames": [
+    "shared_transformer_head_cached_sequence_attention_dyt_freeze_all_summary.json"
+  ],
+  "aggregate_mean_std": {
+    "best_val_loss": {
+      "mean": 1.0864204085637228,
+      "std": 0.0
+    },
+    "best_val_acc": {
+      "mean": 0.7001755926251098,
+      "std": 0.0
+    },
+    "test_acc": {
+      "mean": 0.7156947568783527,
+      "std": 0.0
+    },
+    "macro_f1": {
+      "mean": 0.6895530216643121,
+      "std": 0.0
+    },
+    "weighted_f1": {
+      "mean": 0.7020891845623661,
+      "std": 0.0
+    },
+    "uar": {
+      "mean": 0.7147021724140674,
+      "std": 0.0
+    }
+  },
+  "best_val_loss": 1.0864204085637228,
+  "best_val_acc": 0.7001755926251098,
+  "test_acc": 0.7156947568783527,
+  "macro_f1": 0.6895530216643121,
+  "weighted_f1": 0.7020891845623661,
+  "uar": 0.7147021724140674
+}

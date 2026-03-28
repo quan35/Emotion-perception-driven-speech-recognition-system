@@ -125,6 +125,8 @@ shared_model:
 - `norm: "dyt"`：无归一化对比配置，可作为归一化消融实验之一。
 - `norm: "layernorm"`：标准归一化对比配置，可作为归一化消融实验之一。
 
+如果当前 `training_mode=cached_sequence`，notebook 会优先读取 `shared_model.cached_sequence_*` 形式的模式专属结构覆盖项；因此若你希望在缓存序列模式下显式比较 `Derf / DyT / LayerNorm`，应同步检查或修改 `cached_sequence_norm`，避免误把 `live_encoder` 的主线配置直接套到离线缓存训练上。
+
 如果你使用类似 `16` 核 CPU 与 `24GB` 显存 `RTX 4090` 的训练环境，建议同时在 `training` 段落中启用较积极的 `live_encoder` 吞吐配置：
 
 ```yaml
@@ -141,11 +143,11 @@ training:
 
 这些参数分别控制 `live_encoder` 训练批大小、验证批大小、DataLoader 并行读取进程数、预取深度以及 worker 常驻策略。如果出现显存不足，可以优先把 `live_encoder_batch_size` 从 `16` 降到 `12` 或 `8`；如果 CPU 或磁盘压力过高，则把 `live_encoder_num_workers` 和 `live_encoder_eval_num_workers` 下调到 `4`。
 
-当前版本同时把主线默认训练超参数调整为更稳健的设置，即 `shared_model.dropout=0.2`、`training.learning_rate=2e-4`、`training.weight_decay=1e-4` 与 `training.label_smoothing=0.05`。对于 `live_encoder + unfreeze_last_2`，notebook 会进一步自动把优化器拆分为 `head` 与 `encoder` 两组参数，并对 Whisper 编码器使用更小的 `encoder_learning_rate`，同时在前 `warmup_epochs` 轮执行学习率 warmup，以减轻微调初期的不稳定震荡。
+当前版本同时把主线默认训练超参数调整为更稳健的设置，即 `shared_model.dropout=0.2`、`training.learning_rate=2e-4`、`training.weight_decay=1e-4` 与 `training.label_smoothing=0.05`。对于 `live_encoder + freeze_all`，配置中还支持 `training.live_encoder_*` 形式的模式专属覆盖项，例如 `live_encoder_head_learning_rate`、`live_encoder_weight_decay`、`live_encoder_scheduler_patience` 与 `live_encoder_patience`，用于抑制前几轮快速冲高后立刻过拟合的现象。对于 `live_encoder + unfreeze_last_2`，notebook 会进一步自动把优化器拆分为 `head` 与 `encoder` 两组参数，并对 Whisper 编码器使用更小的 `encoder_learning_rate`，同时在前 `warmup_epochs` 轮执行学习率 warmup，以减轻微调初期的不稳定震荡。
 
-如果采用 `cached_sequence` 做归一化消融，则 notebook 还支持 `training.cached_sequence_*` 形式的模式专属覆盖项，例如 `cached_sequence_head_learning_rate`、`cached_sequence_weight_decay`、`cached_sequence_label_smoothing`、`cached_sequence_warmup_epochs`、`cached_sequence_patience` 与 `cached_sequence_dropout`。当前默认值已经被调为比 `live_encoder` 更保守的组合，用于抑制离线序列特征场景下首轮之后迅速过拟合的问题。训练日志中若出现前几轮学习率逐步升高，例如 `6.67e-05 -> 1.33e-04 -> 2.00e-04`，这正是 warmup 正在生效，而不是 warmup 缺失。
+如果采用 `cached_sequence` 做归一化消融，则 notebook 同时支持两类模式专属覆盖项。第一类是 `shared_model.cached_sequence_*`，例如 `cached_sequence_norm`、`cached_sequence_head_layers`、`cached_sequence_ff_mult`、`cached_sequence_classifier_hidden` 与 `cached_sequence_attention_pool_hidden`，用于把冻结缓存特征场景下的 Emotion Head 调成更小、更稳的结构。第二类是 `training.cached_sequence_*`，例如 `cached_sequence_esd_epoch_cap`、`cached_sequence_head_learning_rate`、`cached_sequence_weight_decay`、`cached_sequence_label_smoothing`、`cached_sequence_warmup_epochs`、`cached_sequence_patience` 与 `cached_sequence_dropout`，用于进一步抑制离线序列特征场景下首轮之后迅速过拟合的问题。训练日志中若出现前几轮学习率逐步升高，例如 `6.67e-05 -> 1.33e-04 -> 2.00e-04`，这正是 warmup 正在生效，而不是 warmup 缺失。
 
-共享模型训练完成后，`notebooks/04_train_shared.ipynb` 现在会按最高 `val_acc` 选择 best checkpoint；若多个 epoch 的 `val_acc` 相同，则再用更低的 `val_loss` 作为并列条件下的判定标准。
+共享模型训练完成后，`notebooks/04_train_shared.ipynb` 现在会按最高 `val_uar` 选择 best checkpoint；若多个 epoch 的 `val_uar` 相同，则再用更低的 `val_loss` 作为并列条件下的判定标准。与此同时，共享模型训练链路默认使用带类别权重的 `CrossEntropyLoss`，并支持通过 `training.esd_epoch_cap` 与模式专属的 `training.cached_sequence_esd_epoch_cap` 为每个 epoch 设置 `ESD` 样本硬上限，以降低单一语料库在训练分布中的主导效应。
 
 #### 6.2 归一化与冻结策略消融的推荐操作流程
 
@@ -296,7 +298,7 @@ sequenceDiagram
 - `best_emotion.pth` 或 `paths.best_shared_model` 指向的共享模型权重缺失时，界面仍然可以打开，但情感输出可能来自随机权重，不能直接用于论文结论。
 - `Whisper + Normalization-Free Transformer Emotion Head` 的默认训练模式是 `live_encoder`，该模式最贴近实际主线实验，但显存与算力需求最高。
 - 主线默认 `norm=derf`，这对应无归一化 Transformer 路线；`LayerNorm` 与 `DyT` 仍保留为兼容和对比配置。
-- `cached_sequence` 可以降低重复编码开销，但因为序列特征已离线固定，训练阶段无法真正更新 Whisper 编码器；首次运行会根据 `audio.max_duration` 生成截断后的序列缓存，若检测到旧版全长缓存则会自动重建。
+- `cached_sequence` 可以降低重复编码开销，但因为序列特征已离线固定，训练阶段无法真正更新 Whisper 编码器；因此当前默认会优先采用更保守的模式专属头部配置与更激进的 `ESD` 限额。首次运行会根据 `audio.max_duration` 生成截断后的序列缓存，若检测到旧版全长缓存则会自动重建。
 - `cached_pooled` 主要服务于旧版 `legacy_mlp` 路线，不能替代当前主线中的 Transformer Emotion Head。
 - `data/` 目录在很多部署环境中不会随仓库一并提供，开始训练前应先检查软链接或挂载路径是否正确。
 

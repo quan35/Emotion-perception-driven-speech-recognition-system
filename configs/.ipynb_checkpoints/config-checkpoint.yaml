@@ -42,6 +42,11 @@ shared_model:
   dropout: 0.2
   classifier_hidden: 256
   attention_pool_hidden: 256
+  cached_sequence_norm: "layernorm"
+  cached_sequence_head_layers: 1
+  cached_sequence_ff_mult: 2
+  cached_sequence_classifier_hidden: 128
+  cached_sequence_attention_pool_hidden: 128
   legacy_hidden_dims: [256, 64]
   cache_feature_dtype: "float16"
 
@@ -70,15 +75,22 @@ training:
   val_ratio: 0.1
   test_ratio: 0.1
   seed: 42
+  best_metric: "uar"
+  esd_epoch_cap: 10000
   label_smoothing: 0.05
   warmup_epochs: 3
-  cached_sequence_dropout: 0.3
-  cached_sequence_head_learning_rate: 0.00008
-  cached_sequence_weight_decay: 0.0005
+  live_encoder_head_learning_rate: 0.0001
+  live_encoder_weight_decay: 0.0002
+  live_encoder_scheduler_patience: 3
+  live_encoder_patience: 8
+  cached_sequence_esd_epoch_cap: 8000
+  cached_sequence_dropout: 0.35
+  cached_sequence_head_learning_rate: 0.00006
+  cached_sequence_weight_decay: 0.001
   cached_sequence_label_smoothing: 0.1
   cached_sequence_warmup_epochs: 5
-  cached_sequence_patience: 10
-  cached_sequence_scheduler_patience: 5
+  cached_sequence_patience: 8
+  cached_sequence_scheduler_patience: 3
   cached_sequence_scheduler_factor: 0.5
   focal_loss: false
   focal_gamma: 2.0
