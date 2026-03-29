@@ -62,15 +62,15 @@ python preprocessing/feature_extract.py
 - `shared_model.training_mode=live_encoder`
 - `shared_model.norm=derf`
 - `shared_model.freeze_strategy=unfreeze_last_2`
-- `training.best_metric=uar`
+- `training.best_metric=subset_mean_uar`
 
 当前版本的主线训练还包含以下默认约定：
 
 - 严格主基准仅包含 `RAVDESS`、`CASIA`、`ESD`、`EMODB` 和 `IEMOCAP`，并按数据子集分别执行 `speaker-group split`，避免同一说话人同时出现在训练集、验证集和测试集中。
 - `TESS` 因有效说话人数量不足以稳定支持三路 `speaker-group split`，当前默认作为辅助评估集，不再并入主 checkpoint 选择或主表指标。
-- 每个 epoch 会按 `training.subset_epoch_caps` 对主基准各数据子集限额采样，减弱 `ESD` 的主导效应。
-- 最佳 checkpoint 统一按 `val_uar` 选择，并以 `val_loss` 作为并列判定条件。
-- `live_encoder` 路线启用 Mel 级训练增强，`cached_sequence` 路线启用特征级遮蔽、dropout 与噪声增强。
+- 每个 epoch 会按 `training.subset_epoch_targets` 对主基准各数据子集做目标采样；当小语料样本不足时，训练集会先全量取一遍，再按类别感知概率有放回补足，进一步减弱 `ESD` 的主导效应。
+- 最佳 checkpoint 统一按 `val_subset_mean_uar` 选择，并以 `val_uar`、`val_loss` 作为并列判定条件。
+- `live_encoder` 路线默认启用带类别权重的 `FocalLoss`、Mel 级训练增强与子集均衡采样，`cached_sequence` 路线继续使用特征级遮蔽、dropout 与噪声增强。
 
 主线训练完成后，典型输出包括：
 
@@ -81,22 +81,34 @@ python preprocessing/feature_extract.py
 - `checkpoints/shared_transformer_head_*_seed<seed>_confusion_matrix.png`
 - `checkpoints/shared_transformer_head_*_aggregate.json`
 
+其中新的 `summary.json` / `aggregate.json` 会额外记录 `selected_val_subset_mean_uar`、`test_subset_mean_uar`、`criterion_name`、`criterion_config` 和 `class_weights`，用于严格协议下的可比分析。
+
 3. 如果需要切换共享模型的实验配置，优先修改 `configs/config.yaml` 中的以下字段：
 
 ```yaml
 shared_model:
   training_mode: "live_encoder"   # 或 cached_sequence
   norm: "derf"                    # 或 dyt / layernorm
-  freeze_strategy: "unfreeze_last_2"   # 或 freeze_all
+  freeze_strategy: "unfreeze_last_2"   # 或 freeze_all / unfreeze_last_4
 
 paths:
   best_shared_model: "checkpoints/shared_transformer_head_live_encoder_attention_derf_unfreeze_last_2.pth"
 
 training:
+  best_metric: "subset_mean_uar"
   protocol_version: 2
   main_subsets: ["ravdess", "casia", "esd", "emodb", "iemocap"]
   auxiliary_subsets: ["tess"]
   seed_sweep: [42, 52, 62]
+  subset_sampling_mode: "balanced_class_aware"
+  subset_epoch_targets:
+    ravdess: 1200
+    casia: 900
+    emodb: 700
+    iemocap: 2200
+    esd: 2000
+  live_encoder_focal_loss: true
+  live_encoder_focal_gamma: 1.5
 ```
 
 ### 4.1 消融实验
@@ -116,7 +128,7 @@ shared_model:
 
 完成三次训练后，执行 notebook 第 7 节会读取对应的 `*_history.npz` 与 `*_summary.json`，并输出 `checkpoints/shared_norm_ablation.png`。
 
-2. 冻结策略消融使用 `live_encoder`，固定 `norm=derf`，分别训练 `freeze_all` 与 `unfreeze_last_2`：
+2. 冻结策略消融使用 `live_encoder`，固定 `norm=derf`，分别训练 `freeze_all`、`unfreeze_last_2` 与 `unfreeze_last_4`：
 
 ```yaml
 shared_model:
@@ -124,7 +136,7 @@ shared_model:
   training_mode: "live_encoder"
   pooling: "attention"
   norm: "derf"
-  freeze_strategy: "freeze_all" # 再切换为 unfreeze_last_2
+  freeze_strategy: "freeze_all" # 再切换为 unfreeze_last_2 / unfreeze_last_4
 ```
 
 完成两次训练后，执行 notebook 第 8 节会输出 `checkpoints/shared_freeze_ablation.png`。

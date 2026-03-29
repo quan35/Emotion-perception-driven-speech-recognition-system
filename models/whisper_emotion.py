@@ -109,6 +109,8 @@ def _normalize_freeze_strategy(name: str) -> str:
         return "freeze_all"
     if name in {"unfreeze_last_2", "last2", "last_2"}:
         return "unfreeze_last_2"
+    if name in {"unfreeze_last_4", "last4", "last_4"}:
+        return "unfreeze_last_4"
     if name in {"unfreeze_all", "train_all"}:
         return "unfreeze_all"
     raise ValueError(f"不支持的 freeze strategy: {name}")
@@ -356,6 +358,7 @@ class WhisperEmotionHead(nn.Module):
     冻结策略（消融实验 B）：
       - freeze_all:      冻结全部 Encoder 参数，推理时 torch.no_grad()
       - unfreeze_last_2:  解冻最后 2 层 Transformer Block + ln_post
+      - unfreeze_last_4:  解冻最后 4 层 Transformer Block + ln_post
     """
 
     def __init__(
@@ -470,6 +473,7 @@ class WhisperEmotionHead(nn.Module):
 
         freeze_all:      冻结全部参数，防止灾难性遗忘（B1）
         unfreeze_last_2:  解冻最后 2 层 Block + ln_post，允许适配情感任务（B2）
+        unfreeze_last_4:  解冻最后 4 层 Block + ln_post，进一步增强跨域适配能力（B3）
         unfreeze_all:    解冻全部参数（非论文主线，仅供实验）
         """
         for param in self.encoder.parameters():
@@ -478,11 +482,12 @@ class WhisperEmotionHead(nn.Module):
         if self.freeze_strategy == "freeze_all":
             return
 
-        if self.freeze_strategy == "unfreeze_last_2":
+        if self.freeze_strategy in {"unfreeze_last_2", "unfreeze_last_4"}:
             blocks = getattr(self.encoder, "blocks", None)
             if not blocks:
                 raise ValueError("当前 Whisper encoder 不支持按 block 部分解冻")
-            for block in blocks[-2:]:
+            num_blocks = 2 if self.freeze_strategy == "unfreeze_last_2" else 4
+            for block in blocks[-num_blocks:]:
                 for param in block.parameters():
                     param.requires_grad = True
             ln_post = getattr(self.encoder, "ln_post", None)

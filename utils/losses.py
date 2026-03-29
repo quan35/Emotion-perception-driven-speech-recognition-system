@@ -30,10 +30,29 @@ class FocalLoss(nn.Module):
             self.alpha = None
 
     def forward(self, logits, targets):
-        ce = F.cross_entropy(
-            logits, targets, weight=self.alpha, reduction='none',
-            label_smoothing=self.label_smoothing,
-        )
-        p_t = torch.exp(-ce)
-        loss = ((1 - p_t) ** self.gamma) * ce
+        log_probs = F.log_softmax(logits, dim=-1)
+        probs = log_probs.exp()
+        targets = targets.long()
+
+        if self.label_smoothing > 0:
+            num_classes = int(logits.size(-1))
+            smooth = float(self.label_smoothing) / float(num_classes)
+            target_dist = torch.full_like(log_probs, smooth)
+            target_dist.scatter_(
+                1,
+                targets.unsqueeze(1),
+                1.0 - float(self.label_smoothing) + smooth,
+            )
+            ce = -(target_dist * log_probs).sum(dim=-1)
+        else:
+            ce = F.nll_loss(log_probs, targets, reduction='none')
+
+        p_t = probs.gather(1, targets.unsqueeze(1)).squeeze(1).clamp_(1e-8, 1.0)
+        loss = ((1.0 - p_t) ** self.gamma) * ce
+
+        if self.alpha is not None:
+            alpha_t = self.alpha.to(logits.device).gather(0, targets)
+            loss = alpha_t * loss
+            return loss.sum() / alpha_t.sum().clamp_min(1e-6)
+
         return loss.mean()

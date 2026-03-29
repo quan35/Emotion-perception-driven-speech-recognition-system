@@ -31,10 +31,10 @@ model:
 shared_model:
   variant: "transformer_head"
   checkpoint_format: 2
-  training_mode: "live_encoder" # "live_encoder" "cached_sequence"
+  training_mode: "cached_sequence" # "live_encoder" "cached_sequence"
   pooling: "attention"
-  norm: "derf" # "derf" "dyt" "layernorm"
-  freeze_strategy: "unfreeze_last_2" # "freeze_all" "unfreeze_last_2"
+  norm: "layernorm" # "derf" "dyt" "layernorm"
+  freeze_strategy: "freeze_all" # "freeze_all" "unfreeze_last_2" "unfreeze_last_4"
   head_layers: 2
   head_hidden_dim: 768
   num_heads: 8
@@ -42,7 +42,6 @@ shared_model:
   dropout: 0.2
   classifier_hidden: 256
   attention_pool_hidden: 256
-  cached_sequence_norm: "layernorm"
   cached_sequence_head_layers: 1
   cached_sequence_ff_mult: 1
   cached_sequence_classifier_hidden: 128
@@ -75,25 +74,38 @@ training:
   val_ratio: 0.1
   test_ratio: 0.1
   seed: 42
-  best_metric: "uar"
+  best_metric: "subset_mean_uar"
   protocol_version: 2
   main_subsets: ["ravdess", "casia", "esd", "emodb", "iemocap"]
   auxiliary_subsets: ["tess"]
   seed_sweep: [42, 52, 62]
+  subset_sampling_mode: "balanced_class_aware"
+  subset_sampling_with_replacement: true
+  subset_class_balance_power: 0.5
+  subset_epoch_targets:
+    casia: 900
+    emodb: 700
+    esd: 2000
+    iemocap: 2200
+    ravdess: 1200
   subset_epoch_caps:
     casia: 900
-    emodb: 400
-    esd: 4000
-    iemocap: 3000
+    emodb: 700
+    esd: 2000
+    iemocap: 2200
     ravdess: 1200
     tess: 2000
-  esd_epoch_cap: 4000
+  esd_epoch_cap: 2000
   label_smoothing: 0.05
   warmup_epochs: 3
   live_encoder_head_learning_rate: 0.0001
+  live_encoder_encoder_learning_rate: 0.00002
   live_encoder_weight_decay: 0.0002
   live_encoder_scheduler_patience: 3
   live_encoder_patience: 8
+  live_encoder_label_smoothing: 0.02
+  live_encoder_focal_loss: true
+  live_encoder_focal_gamma: 1.5
   cached_sequence_esd_epoch_cap: 4000
   cached_sequence_dropout: 0.45
   cached_sequence_head_learning_rate: 0.00003
