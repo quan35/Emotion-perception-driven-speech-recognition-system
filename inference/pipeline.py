@@ -1,6 +1,6 @@
 """
 完整推理流水线：ASR (Whisper) + SER (情感识别)。
-支持文件路径和 numpy 数组输入。
+支持早期探索模型与正式主线模型的统一推理。
 """
 
 import os
@@ -74,12 +74,12 @@ class EmotionAwareSpeechPipeline:
     """
     情感感知语音识别流水线。
     整合 ASR + SER，一次调用返回文字 + 情感。
-    支持两个 SER 模型：CNN+BiLSTM+Attention（传统基线）
-    和 Whisper+Norm-Free Transformer（毕设主线，默认 Derf）。
+    支持两个 SER 模型：CNN+BiLSTM+Attention（早期探索）
+    和 Whisper+Transformer Emotion Head（正式主线，默认 Derf）。
     """
 
-    MODEL_CNN = "CNN+BiLSTM+Attention"
-    MODEL_SHARED = "Whisper+Norm-Free Transformer"
+    MODEL_CNN = "CNN+BiLSTM+Attention（早期探索）"
+    MODEL_SHARED = "Whisper+Transformer Emotion Head（主线）"
 
     def __init__(self, config=None, whisper_size=None):
         self.cfg = config or load_config()
@@ -92,7 +92,7 @@ class EmotionAwareSpeechPipeline:
 
         self.shared_model = None
         self.shared_whisper_model = None
-        self.active_model_name = self.MODEL_CNN
+        self.active_model_name = self.MODEL_SHARED
 
         self._load_cnn_model()
         self._load_shared_model()
@@ -120,7 +120,7 @@ class EmotionAwareSpeechPipeline:
         self.cnn_model.eval()
 
     def _load_shared_model(self):
-        """加载 Whisper+Norm-Free Transformer 情感模型。"""
+        """加载 Whisper+Transformer Emotion Head 情感模型。"""
         path = self.cfg["paths"]["best_shared_model"]
         ckpt = torch.load(path, map_location=self.device) if os.path.isfile(path) else None
 
@@ -130,7 +130,7 @@ class EmotionAwareSpeechPipeline:
                 self.shared_whisper_model,
                 self.cfg,
             ).to(self.device)
-            print(f"警告: Whisper+Norm-Free Transformer 模型不存在 ({path})，使用随机权重")
+            print(f"警告: Whisper+Transformer Emotion Head 模型不存在 ({path})，使用随机权重")
             self.shared_model.eval()
             return
 
@@ -159,7 +159,7 @@ class EmotionAwareSpeechPipeline:
             **shared_cfg,
         ).to(self.device)
         self.shared_model.load_state_dict(ckpt["state_dict"])
-        print(f"已加载 Whisper+Norm-Free Transformer 模型(v{ckpt.get('format_version', 2)}): {path}")
+        print(f"已加载 Whisper+Transformer Emotion Head 模型(v{ckpt.get('format_version', 2)}): {path}")
         self.shared_model.eval()
 
     def set_model(self, model_name):
@@ -185,7 +185,7 @@ class EmotionAwareSpeechPipeline:
         return probs.cpu().numpy()[0]
 
     def _get_emotion_from_whisper(self, audio_path):
-        """使用 Whisper+Norm-Free Transformer 模型进行情感识别。"""
+        """使用 Whisper+Transformer Emotion Head 模型进行情感识别。"""
         audio = whisper.load_audio(audio_path)
         audio = whisper.pad_or_trim(audio)
         mel = whisper.log_mel_spectrogram(audio).unsqueeze(0).to(self.device)
@@ -296,7 +296,7 @@ class EmotionAwareSpeechPipeline:
         cnn_probs = self._get_emotion_from_mel(audio)
         results[self.MODEL_CNN] = self._build_result_from_probs(cnn_probs, self.MODEL_CNN, asr_result)
 
-        # Whisper+Norm-Free Transformer
+        # Whisper 正式主线模型
         if self.shared_model is not None:
             transformer_probs = self._get_emotion_from_whisper(audio_path)
             results[self.MODEL_SHARED] = self._build_result_from_probs(

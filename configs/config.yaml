@@ -33,8 +33,8 @@ shared_model:
   checkpoint_format: 2
   training_mode: "live_encoder" # "live_encoder" "cached_sequence"
   pooling: "attention"
-  norm: "derf" # "derf" "dyt" "layernorm"
-  freeze_strategy: "unfreeze_last_4" # "freeze_all" "unfreeze_last_2" "unfreeze_last_4"
+  norm: "derf" # 主线默认候选；论文关键对比为 "derf" 与 "dyt"
+  freeze_strategy: "unfreeze_last_2" # 主线默认解冻最后两层；兼容 "freeze_all" / "unfreeze_last_4"
   head_layers: 2
   head_hidden_dim: 768
   num_heads: 8

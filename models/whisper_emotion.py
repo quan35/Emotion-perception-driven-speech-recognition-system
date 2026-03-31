@@ -1,26 +1,25 @@
 """
-主线模型：Whisper Encoder + Normalization-Free Transformer Emotion Head
-========================================================================
+主线模型：Whisper Encoder + Transformer Emotion Head
+====================================================
 
-基于预训练 Transformer 的迁移学习 SER 模型。
+基于预训练 Whisper 表征的迁移学习 SER 主线模型。
 
 设计思路：
-    与传统模型从零训练不同，主线模型采用 **迁移学习** 策略：
-    - Whisper Encoder 在 68 万小时多样化音频上预训练，已学会提取丰富的通用声学特征
-    - 在其输出序列之上，增加轻量 Transformer Emotion Head，专门建模情感时序依赖
-    - 主线默认采用 Derf（Dynamic Erf）无归一化设计，而非标准 LayerNorm
-    - 通过 Attention Pooling 聚焦情感关键帧，避免平均池化的信息稀释
+    本文件服务于正式主线模型，而非大规模消融入口。
+    当前默认配置采用 `live_encoder + attention + derf + unfreeze_last_2`，
+    用于在保持预训练表征稳定性的同时完成情感任务适配。
+    `DyT` 作为论文关键对比配置保留，`LayerNorm` 和其他冻结策略仅作为兼容选项。
 
     音频 → Whisper log-mel(80) → [Whisper Encoder]
-         → Normalization-Free Transformer Emotion Head (Derf)
+         → Transformer Emotion Head (Derf / DyT)
          → Attention Pooling → 分类头 → 情感类别
 
 配置说明：
-    A. 主线默认归一化：Derf
-    B. 兼容/对比配置：LayerNorm / DyT
-    C. 微调策略：freeze_all / unfreeze_last_2
+    A. 正式主线默认协议：live_encoder + attention + derf + unfreeze_last_2
+    B. 关键设计对比：Derf / DyT
+    C. 兼容配置：LayerNorm / freeze_all / unfreeze_last_4 / legacy_mlp
 
-总参数量: ~101M（其中可训练 ~14.6M，freeze_all 模式）
+总参数量: ~101M（实际可训练参数量随 freeze_strategy 变化）
 """
 
 from typing import Any, Dict, Iterable, Optional, Sequence
@@ -47,7 +46,7 @@ DEFAULT_SHARED_MODEL_CONFIG = {
     "training_mode": "live_encoder",     # 直接输入音频，端到端前向
     "pooling": "attention",              # Attention Pooling
     "norm": "derf",                      # 主线默认采用 Derf 无归一化设计
-    "freeze_strategy": "freeze_all",     # 冻结策略（消融实验 B）
+    "freeze_strategy": "unfreeze_last_2", # 主线默认解冻最后两层
     "head_layers": 2,                    # Transformer Head 层数
     "head_hidden_dim": None,             # 默认与 Whisper enc_dim 一致（768）
     "num_heads": 8,                      # 注意力头数（每头 96 维）
@@ -144,7 +143,7 @@ class DynamicTanh(nn.Module):
 
 
 class DynamicErf(nn.Module):
-    """Derf：主线默认采用的无归一化 Transformer 方案。
+    """Derf：当前主线默认候选的无归一化 Transformer 方案。
 
     来自论文 "Stronger Normalization-Free Transformers"，
     在 DyT 基础上引入额外 shift 参数：
@@ -167,11 +166,11 @@ class DynamicErf(nn.Module):
 def build_norm(norm_type: str, hidden_dim: int) -> nn.Module:
     """构建 Transformer Head 的预处理模块。
 
-    当前主线默认采用 Derf，无归一化设计直接进入 Emotion Head。
-    为保持兼容性和后续对比实验能力，仍保留 LayerNorm 与 DyT 作为可选配置：
-      - derf:      DynamicErf，主线默认
-      - dyt:       DynamicTanh，无归一化对比方案
-      - layernorm: 标准 LayerNorm，兼容/对比方案
+    当前主线默认采用 Derf，并将 DyT 作为论文关键对比配置。
+    为保持历史 checkpoint 和工程扩展能力，仍保留 LayerNorm 作为兼容选项：
+      - derf:      DynamicErf，主线默认候选
+      - dyt:       DynamicTanh，关键对比方案
+      - layernorm: 标准 LayerNorm，兼容保留
     """
     norm_type = _normalize_strategy(norm_type)
     if norm_type == "derf":
@@ -184,13 +183,13 @@ def build_norm(norm_type: str, hidden_dim: int) -> nn.Module:
 
 
 class MeanPooling(nn.Module):
-    """简单平均池化（可选补充实验 C2）。
+    """简单平均池化（兼容补充方案）。
 
     将序列 (B, T, D) 沿时间维取平均得到 (B, D)。
     支持 attention_mask 以排除填充帧。
 
     缺点：情感信息往往集中在少数关键帧，平均池化会稀释情感峰值。
-    用于与 AttentionPooling 的对比实验。
+    主要用于兼容历史配置或补充性验证。
     """
     def forward(
         self,
@@ -215,7 +214,7 @@ class MeanPooling(nn.Module):
 
 
 class AttentionPooling(nn.Module):
-    """可学习的注意力池化（可选补充实验 C1）。
+    """可学习的注意力池化（主线默认句级聚合方案）。
 
     通过可学习的评分网络自适应聚焦情感关键帧：
         x → Linear(D, pool_hidden) → Tanh → Linear(pool_hidden, 1) → Softmax → 加权求和
@@ -291,7 +290,7 @@ class EmotionTransformerBlock(nn.Module):
           → Norm₂ → FFN(Linear → GELU → Dropout → Linear) → Dropout → 残差相加
 
     当前主线默认在 Norm₁ 和 Norm₂ 位置使用 Derf，
-    同时保留 LayerNorm / DyT 作为兼容和对比配置。
+    同时将 DyT 作为关键对比配置，并保留 LayerNorm 兼容能力。
     """
     def __init__(self, hidden_dim: int, num_heads: int, ff_mult: int, dropout: float, norm_type: str):
         super().__init__()
@@ -341,12 +340,12 @@ class WhisperEmotionHead(nn.Module):
         Whisper Encoder → Mean Pool → MLP
         无 Transformer Head，无 Attention Pooling，仅用于向后兼容。
 
-    variant="transformer_head"（毕设主线 ★）：
+    variant="transformer_head"（正式主线 ★）：
         Whisper Encoder → [线性投影] → N 层 Transformer Block(Pre-Norm)
                         → 输出归一化 → Attention Pooling → MLP 分类器
 
-        当前主线默认使用 Derf 作为无归一化设计，
-        因而可视为 Whisper + Normalization-Free Transformer Emotion Head。
+        当前主线默认使用 Derf，并以 DyT 作为论文关键对比配置。
+        因而默认部署可视为 Whisper + Transformer Emotion Head 的主线实现。
 
         默认维度流：
           输入 Whisper mel:         (B, 80, 3000)
@@ -355,7 +354,7 @@ class WhisperEmotionHead(nn.Module):
           Attention Pooling 输出:   (B, 768)
           分类器:                   768 → 256 → 6
 
-    冻结策略（消融实验 B）：
+    训练兼容策略：
       - freeze_all:      冻结全部 Encoder 参数，推理时 torch.no_grad()
       - unfreeze_last_2:  解冻最后 2 层 Transformer Block + ln_post
       - unfreeze_last_4:  解冻最后 4 层 Transformer Block + ln_post
@@ -404,7 +403,7 @@ class WhisperEmotionHead(nn.Module):
 
         self._apply_freeze_strategy()
 
-        # ---- legacy_mlp 兼容基线（无 Transformer Head）----
+        # ---- legacy_mlp 兼容早期探索路径（无 Transformer Head）----
         if self.variant == "legacy_mlp":
             self.input_proj = nn.Identity()
             self.transformer_blocks = nn.ModuleList()  # 空，无 Transformer 层
@@ -417,7 +416,7 @@ class WhisperEmotionHead(nn.Module):
                 dropout=max(self.dropout_p, 0.2),
             )
         else:
-            # ---- 毕设主线：Transformer Emotion Head----
+            # ---- 正式主线：Transformer Emotion Head ----
             # 线性投影：当 head_hidden_dim != enc_dim 时统一维度
             self.input_proj = (
                 nn.Identity() if self.head_hidden_dim == self.enc_dim
@@ -434,7 +433,7 @@ class WhisperEmotionHead(nn.Module):
                 )
                 for _ in range(self.head_layers)
             ])
-            # 输出阶段沿用主线默认 Derf，也兼容 LayerNorm / DyT 对比配置
+            # 输出阶段默认沿用主线配置，同时兼容 DyT 对比与 LayerNorm 保留路径
             self.output_norm = build_norm(self.norm_type, self.head_hidden_dim)
             # Attention Pooling：聚焦情感关键帧
             self.pool = self._build_pool(self.pooling_type, self.head_hidden_dim, int(attention_pool_hidden))
@@ -469,12 +468,12 @@ class WhisperEmotionHead(nn.Module):
         raise ValueError(f"不支持的 pooling 类型: {pooling}")
 
     def _apply_freeze_strategy(self):
-        """应用 Whisper Encoder 冻结策略（消融实验 B）。
+        """应用 Whisper Encoder 的训练兼容策略。
 
-        freeze_all:      冻结全部参数，防止灾难性遗忘（B1）
-        unfreeze_last_2:  解冻最后 2 层 Block + ln_post，允许适配情感任务（B2）
-        unfreeze_last_4:  解冻最后 4 层 Block + ln_post，进一步增强跨域适配能力（B3）
-        unfreeze_all:    解冻全部参数（非论文主线，仅供实验）
+        freeze_all:      冻结全部参数，优先保持预训练表示稳定
+        unfreeze_last_2: 解冻最后 2 层 Block + ln_post，作为当前主线默认协议
+        unfreeze_last_4: 解冻最后 4 层 Block + ln_post，用于扩展性验证
+        unfreeze_all:    解冻全部参数，保留为工程兼容与后续研究接口
         """
         for param in self.encoder.parameters():
             param.requires_grad = False

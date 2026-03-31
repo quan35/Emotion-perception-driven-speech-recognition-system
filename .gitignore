@@ -2,3 +2,5 @@ data
 AGENTS.md
 .claude
 .cursor
+runs
+logs

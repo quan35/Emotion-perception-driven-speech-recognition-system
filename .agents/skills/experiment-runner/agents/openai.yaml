@@ -1,0 +1,4 @@
+interface:
+  display_name: "Experiment Runner"
+  short_description: "Run, audit, and compare SER experiments in this repository"
+  default_prompt: "Handle local SER experiment execution, artifact auditing, checkpoint comparison, and evidence-backed interpretation for this repository."

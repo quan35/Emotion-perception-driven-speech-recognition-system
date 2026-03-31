@@ -1,0 +1,4 @@
+interface:
+  display_name: "SER Research Router"
+  short_description: "Route SER research tasks to the right specialized skills"
+  default_prompt: "Choose the minimal skill set for experiment analysis, paper writing, literature review, or citation verification in this SER repository."

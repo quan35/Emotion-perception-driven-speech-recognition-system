@@ -1,0 +1,4 @@
+interface:
+  display_name: "Paper Writer"
+  short_description: "Write thesis and paper sections for this SER repository"
+  default_prompt: "Write or revise Chinese academic sections for this repository, grounded in local experiment artifacts and the repo's report-writing constraints."
