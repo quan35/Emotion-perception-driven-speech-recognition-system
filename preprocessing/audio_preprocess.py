@@ -19,6 +19,7 @@ import noisereduce as nr
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.audio_utils import load_config, load_audio, save_audio, pad_or_trim
+from utils.data_policy import resolve_dataset_target_label
 
 
 class AudioPreprocessor:
@@ -99,7 +100,7 @@ def parse_ravdess_filename(filename):
     return None
 
 
-def organize_ravdess(raw_dir, output_dir, emotion_map):
+def organize_ravdess(raw_dir, output_dir, emotion_map, config=None):
     """
     将 RAVDESS 扁平目录按情感标签重新组织到子文件夹。
     emotion_map: {"01": "neutral", "03": "happy", ...}
@@ -108,8 +109,10 @@ def organize_ravdess(raw_dir, output_dir, emotion_map):
     count = 0
     for filepath in glob.glob(os.path.join(raw_dir, "**", "*.wav"), recursive=True):
         emotion_code = parse_ravdess_filename(filepath)
-        if emotion_code and emotion_code in emotion_map:
-            label = emotion_map[emotion_code]
+        if emotion_code:
+            label = resolve_dataset_target_label(config, "ravdess", emotion_code) if config is not None else emotion_map.get(emotion_code)
+            if label is None:
+                continue
             dest_dir = os.path.join(output_dir, label)
             os.makedirs(dest_dir, exist_ok=True)
             dest = os.path.join(dest_dir, os.path.basename(filepath))
@@ -121,7 +124,7 @@ def organize_ravdess(raw_dir, output_dir, emotion_map):
     return count
 
 
-def organize_casia(raw_dir, output_dir, emotion_map):
+def organize_casia(raw_dir, output_dir, emotion_map, config=None):
     """
     将 CASIA 目录按情感标签重新组织。
     CASIA 结构: casia/{person}/{emotion}/{id}.wav
@@ -139,10 +142,12 @@ def organize_casia(raw_dir, output_dir, emotion_map):
             continue
 
         # 匹配情感标签（支持中英文目录名）
-        label = emotion_map.get(emotion_dir_name)
-        if label is None:
-            # 尝试小写匹配
-            label = emotion_map.get(emotion_dir_name.lower())
+        if config is not None:
+            label = resolve_dataset_target_label(config, "casia", emotion_dir_name)
+        else:
+            label = emotion_map.get(emotion_dir_name)
+            if label is None:
+                label = emotion_map.get(emotion_dir_name.lower())
         if label is None:
             continue
 
@@ -158,7 +163,7 @@ def organize_casia(raw_dir, output_dir, emotion_map):
     return count
 
 
-def organize_tess(raw_dir, output_dir, emotion_map):
+def organize_tess(raw_dir, output_dir, emotion_map, config=None):
     """
     将 TESS 数据集按情感标签重新组织。
     TESS 结构: {speaker_emotion}/ 下有 {speaker}_{word}_{emotion}.wav
@@ -174,9 +179,14 @@ def organize_tess(raw_dir, output_dir, emotion_map):
         parts = folder.split("_", 1)
         emotion_key = parts[1].lower() if len(parts) > 1 else folder.lower()
 
-        label = emotion_map.get(emotion_key)
-        if label is None:
-            label = emotion_map.get(emotion_key.replace(" ", "_"))
+        if config is not None:
+            label = resolve_dataset_target_label(config, "tess", emotion_key)
+            if label is None:
+                label = resolve_dataset_target_label(config, "tess", emotion_key.replace(" ", "_"))
+        else:
+            label = emotion_map.get(emotion_key)
+            if label is None:
+                label = emotion_map.get(emotion_key.replace(" ", "_"))
         if label is None:
             continue
 
@@ -193,7 +203,7 @@ def organize_tess(raw_dir, output_dir, emotion_map):
     return count
 
 
-def organize_esd(raw_dir, output_dir, emotion_map):
+def organize_esd(raw_dir, output_dir, emotion_map, config=None):
     """
     将 ESD 数据集按情感标签重新组织。
     ESD 结构: {speaker_id}/{emotion_name}/{####}.wav
@@ -209,9 +219,12 @@ def organize_esd(raw_dir, output_dir, emotion_map):
         if emotion_dir_name is None:
             continue
 
-        label = emotion_map.get(emotion_dir_name)
-        if label is None:
-            label = emotion_map.get(emotion_dir_name.capitalize())
+        if config is not None:
+            label = resolve_dataset_target_label(config, "esd", emotion_dir_name)
+        else:
+            label = emotion_map.get(emotion_dir_name)
+            if label is None:
+                label = emotion_map.get(emotion_dir_name.capitalize())
         if label is None:
             continue
 
@@ -247,7 +260,7 @@ def parse_emodb_filename(filename: str) -> Optional[str]:
     return None
 
 
-def organize_emodb(raw_dir: str, output_dir: str, emotion_map: Dict[str, str]):
+def organize_emodb(raw_dir: str, output_dir: str, emotion_map: Dict[str, str], config=None):
     """Organize flat EMODB wav files into label subfolders.
 
     Input:  data/raw/emodb/*.wav
@@ -265,7 +278,10 @@ def organize_emodb(raw_dir: str, output_dir: str, emotion_map: Dict[str, str]):
             skipped += 1
             continue
 
-        label = emotion_map.get(code) or emotion_map.get(code.upper())
+        if config is not None:
+            label = resolve_dataset_target_label(config, "emodb", code)
+        else:
+            label = emotion_map.get(code) or emotion_map.get(code.upper())
         if label is None:
             skipped += 1
             continue
@@ -307,7 +323,7 @@ def parse_iemocap_labels(emo_eval_dir: str) -> Dict[str, str]:
     return label_dict
 
 
-def organize_iemocap(raw_dir: str, output_dir: str, emotion_map: Dict[str, str]):
+def organize_iemocap(raw_dir: str, output_dir: str, emotion_map: Dict[str, str], config=None):
     """
     将 IEMOCAP 数据集按情感标签重新组织。
     IEMOCAP 结构: session{1-5}/sentences/wav/*.wav + dialog/EmoEvaluation/*.txt
@@ -351,7 +367,10 @@ def organize_iemocap(raw_dir: str, output_dir: str, emotion_map: Dict[str, str])
                     continue
 
                 # 映射到 6 类标签
-                label = emotion_map.get(emotion_code)
+                if config is not None:
+                    label = resolve_dataset_target_label(config, "iemocap", emotion_code)
+                else:
+                    label = emotion_map.get(emotion_code)
                 if label is None:
                     skipped += 1
                     continue
@@ -382,6 +401,7 @@ if __name__ == "__main__":
             ravdess_raw,
             ravdess_organized,
             cfg["datasets"]["ravdess"]["emotions"],
+            config=cfg,
         )
         preprocessor.process_dataset(ravdess_organized, os.path.join(processed, "ravdess"))
 
@@ -392,6 +412,7 @@ if __name__ == "__main__":
             casia_raw,
             casia_organized,
             cfg["datasets"]["casia"]["emotions"],
+            config=cfg,
         )
         preprocessor.process_dataset(casia_organized, os.path.join(processed, "casia"))
 
@@ -402,6 +423,7 @@ if __name__ == "__main__":
             tess_raw,
             tess_organized,
             cfg["datasets"]["tess"]["emotions"],
+            config=cfg,
         )
         preprocessor.process_dataset(tess_organized, os.path.join(processed, "tess"))
 
@@ -412,6 +434,7 @@ if __name__ == "__main__":
             esd_raw,
             esd_organized,
             cfg["datasets"]["esd"]["emotions"],
+            config=cfg,
         )
         preprocessor.process_dataset(esd_organized, os.path.join(processed, "esd"))
 
@@ -422,6 +445,7 @@ if __name__ == "__main__":
             emodb_raw,
             emodb_organized,
             cfg["datasets"]["emodb"]["emotions"],
+            config=cfg,
         )
         preprocessor.process_dataset(emodb_organized, os.path.join(processed, "emodb"))
 
@@ -432,6 +456,7 @@ if __name__ == "__main__":
             iemocap_raw,
             iemocap_organized,
             cfg["datasets"]["iemocap"]["emotions"],
+            config=cfg,
         )
         preprocessor.process_dataset(iemocap_organized, os.path.join(processed, "iemocap"))
 

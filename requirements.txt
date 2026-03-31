@@ -14,3 +14,5 @@ pandas>=2.0.0
 soundfile>=0.12.0
 webrtcvad>=2.0.10
 tabulate
+nbformat>=5.10.0
+nbclient>=0.10.0

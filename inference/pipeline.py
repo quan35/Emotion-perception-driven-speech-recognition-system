@@ -4,6 +4,7 @@
 """
 
 import os
+import glob
 import sys
 import tempfile
 import numpy as np
@@ -18,12 +19,29 @@ from utils.audio_utils import (
 )
 from preprocessing.audio_preprocess import AudioPreprocessor
 from preprocessing.feature_extract import FeatureExtractor
+from preprocessing.whisper_feature_cache import build_whisper_ser_input_from_raw_audio
 from models.emotion_cnn_bilstm import EmotionRecognizer
 from models.whisper_emotion import (
     WhisperEmotionHead,
     build_shared_model_from_config,
     is_legacy_shared_checkpoint,
+    load_shared_checkpoint_state,
 )
+
+
+
+
+def _resolve_seeded_checkpoint_path(path: str) -> str:
+    if os.path.isfile(path):
+        return path
+
+    stem, _ = os.path.splitext(path)
+    candidates = sorted(glob.glob(f"{stem}_seed*.pth"))
+    if not candidates:
+        return path
+
+    preferred = [candidate for candidate in candidates if candidate.endswith("_seed42.pth")]
+    return preferred[0] if preferred else candidates[0]
 
 
 class ASREngine:
@@ -92,9 +110,12 @@ class EmotionAwareSpeechPipeline:
 
         self.shared_model = None
         self.shared_whisper_model = None
+        self.legacy_enabled = bool(self.cfg.get("legacy", {}).get("enabled", False))
         self.active_model_name = self.MODEL_SHARED
 
-        self._load_cnn_model()
+        self.cnn_model = None
+        if self.legacy_enabled:
+            self._load_cnn_model()
         self._load_shared_model()
 
     def _load_cnn_model(self, path=None):
@@ -121,7 +142,10 @@ class EmotionAwareSpeechPipeline:
 
     def _load_shared_model(self):
         """加载 Whisper+Transformer Emotion Head 情感模型。"""
-        path = self.cfg["paths"]["best_shared_model"]
+        configured_path = self.cfg["paths"]["best_shared_model"]
+        path = _resolve_seeded_checkpoint_path(configured_path)
+        if path != configured_path:
+            print(f"提示: 未找到配置中的共享模型，自动回退到: {path}")
         ckpt = torch.load(path, map_location=self.device) if os.path.isfile(path) else None
 
         if ckpt is None:
@@ -158,13 +182,15 @@ class EmotionAwareSpeechPipeline:
             whisper_size=whisper_size,
             **shared_cfg,
         ).to(self.device)
-        self.shared_model.load_state_dict(ckpt["state_dict"])
+        load_shared_checkpoint_state(self.shared_model, ckpt)
         print(f"已加载 Whisper+Transformer Emotion Head 模型(v{ckpt.get('format_version', 2)}): {path}")
         self.shared_model.eval()
 
     def set_model(self, model_name):
         """切换当前使用的情感识别模型。"""
-        if model_name in (self.MODEL_CNN, self.MODEL_SHARED):
+        if model_name == self.MODEL_SHARED:
+            self.active_model_name = model_name
+        elif model_name == self.MODEL_CNN and self.legacy_enabled and self.cnn_model is not None:
             self.active_model_name = model_name
 
     def _get_emotion_from_mel(self, audio):
@@ -186,12 +212,18 @@ class EmotionAwareSpeechPipeline:
 
     def _get_emotion_from_whisper(self, audio_path):
         """使用 Whisper+Transformer Emotion Head 模型进行情感识别。"""
-        audio = whisper.load_audio(audio_path)
-        audio = whisper.pad_or_trim(audio)
-        mel = whisper.log_mel_spectrogram(audio).unsqueeze(0).to(self.device)
+        sr = self.cfg["audio"]["sample_rate"]
+        audio, _ = load_audio(audio_path, sr=sr)
+        mel, attention_mask = build_whisper_ser_input_from_raw_audio(
+            audio=audio,
+            sr=sr,
+            device=self.device,
+            preprocessor=self.preprocessor,
+            apply_denoise=True,
+        )
 
         with torch.no_grad():
-            probs = self.shared_model.predict_proba(mel)
+            probs = self.shared_model.predict_proba(mel=mel, attention_mask=attention_mask)
         return probs.cpu().numpy()[0]
 
     def process(self, audio_input, language=None):
@@ -284,19 +316,18 @@ class EmotionAwareSpeechPipeline:
         asr_result = self.asr.transcribe(audio_path, language=language)
         results = {}
 
-        # CNN+BiLSTM+Attention
-        sr = self.cfg["audio"]["sample_rate"]
-        audio, _ = load_audio(audio_path, sr=sr)
-        audio = self.preprocessor.remove_silence(audio)
-        min_samples = int(sr * self.cfg["audio"]["min_duration"])
-        if len(audio) < min_samples:
+        if self.legacy_enabled and self.cnn_model is not None:
+            sr = self.cfg["audio"]["sample_rate"]
             audio, _ = load_audio(audio_path, sr=sr)
-        audio = self.preprocessor.normalize(audio)
-        audio = pad_or_trim(audio, int(sr * self.cfg["audio"]["max_duration"]))
-        cnn_probs = self._get_emotion_from_mel(audio)
-        results[self.MODEL_CNN] = self._build_result_from_probs(cnn_probs, self.MODEL_CNN, asr_result)
+            audio = self.preprocessor.remove_silence(audio)
+            min_samples = int(sr * self.cfg["audio"]["min_duration"])
+            if len(audio) < min_samples:
+                audio, _ = load_audio(audio_path, sr=sr)
+            audio = self.preprocessor.normalize(audio)
+            audio = pad_or_trim(audio, int(sr * self.cfg["audio"]["max_duration"]))
+            cnn_probs = self._get_emotion_from_mel(audio)
+            results[self.MODEL_CNN] = self._build_result_from_probs(cnn_probs, self.MODEL_CNN, asr_result)
 
-        # Whisper 正式主线模型
         if self.shared_model is not None:
             transformer_probs = self._get_emotion_from_whisper(audio_path)
             results[self.MODEL_SHARED] = self._build_result_from_probs(

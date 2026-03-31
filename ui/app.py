@@ -19,14 +19,14 @@ from utils.visualization import (
 from inference.pipeline import EmotionAwareSpeechPipeline
 
 cfg = load_config()
+legacy_enabled = bool(cfg.get("legacy", {}).get("enabled", False))
 
 pipeline = None
 emotion_history = []
 
-MODEL_CHOICES = [
-    EmotionAwareSpeechPipeline.MODEL_SHARED,
-    EmotionAwareSpeechPipeline.MODEL_CNN,
-]
+MODEL_CHOICES = [EmotionAwareSpeechPipeline.MODEL_SHARED]
+if legacy_enabled:
+    MODEL_CHOICES.append(EmotionAwareSpeechPipeline.MODEL_CNN)
 
 
 def get_pipeline():
@@ -114,6 +114,8 @@ def process_compare_audio(audio_input):
         "<p style='color:#999;padding:20px;'>请先录音或上传音频文件</p>",
         None,
     )
+    if not legacy_enabled:
+        return ("<p style='color:#999;padding:20px;'>当前默认仅启用 Whisper 主线，未开启早期探索模型对比。</p>", None)
     if audio_input is None:
         return empty
 
@@ -199,7 +201,10 @@ def build_legend_html():
 def create_app():
     with gr.Blocks(theme=THEME, css=CSS, title="情感感知驱动的说话人语音识别系统") as app:
         gr.HTML('<div class="main-title"><h1>情感感知驱动的说话人语音识别系统</h1></div>')
-        gr.HTML('<div class="subtitle">主线：Whisper + Transformer Emotion Head；探索：CNN+BiLSTM+Attention</div>')
+        if legacy_enabled:
+            gr.HTML('<div class="subtitle">主线：Whisper + Transformer Emotion Head；探索：CNN+BiLSTM+Attention</div>')
+        else:
+            gr.HTML('<div class="subtitle">默认运行：Whisper + Transformer Emotion Head</div>')
         gr.HTML(build_legend_html())
 
         with gr.Row(equal_height=False):
@@ -217,18 +222,22 @@ def create_app():
                     label="上传音频文件",
                 )
                 gr.Markdown("### 情感识别模型")
+                selector_info = "Whisper+Transformer Emotion Head: 正式主线"
+                if legacy_enabled:
+                    selector_info += " | CNN+BiLSTM+Attention: 早期探索"
                 model_selector = gr.Radio(
                     choices=MODEL_CHOICES,
                     value=MODEL_CHOICES[0],
                     label="选择模型",
-                    info="Whisper+Transformer Emotion Head: 正式主线 | CNN+BiLSTM+Attention: 早期探索",
+                    info=selector_info,
                 )
                 with gr.Row():
                     btn_mic = gr.Button("分析录音", variant="primary", size="sm")
                     btn_file = gr.Button("分析文件", variant="primary", size="sm")
-                with gr.Row():
-                    btn_compare_mic = gr.Button("对比录音", variant="secondary", size="sm")
-                    btn_compare_file = gr.Button("对比文件", variant="secondary", size="sm")
+                if legacy_enabled:
+                    with gr.Row():
+                        btn_compare_mic = gr.Button("对比录音", variant="secondary", size="sm")
+                        btn_compare_file = gr.Button("对比文件", variant="secondary", size="sm")
                 btn_clear = gr.Button("清空历史", variant="secondary", size="sm")
 
             # ---- 中栏: 结果 ----
@@ -247,27 +256,34 @@ def create_app():
                 wave_output = gr.Plot(label="波形图")
                 mel_output = gr.Plot(label="Mel 频谱图")
 
-        # ---- 对比分析区域 ----
-        with gr.Accordion("两模型对比分析", open=False):
-            compare_html_output = gr.HTML(
-                value="<p style='color:#999;padding:20px;'>点击「对比录音」或「对比文件」查看两模型对比结果</p>",
-                label="对比结果",
-            )
-            compare_bar_output = gr.Plot(label="模型情感预测对比柱状图")
+        compare_html_output = None
+        compare_bar_output = None
+        compare_outputs = []
+        if legacy_enabled:
+            with gr.Accordion("两模型对比分析", open=False):
+                compare_html_output = gr.HTML(
+                    value="<p style='color:#999;padding:20px;'>点击「对比录音」或「对比文件」查看两模型对比结果</p>",
+                    label="对比结果",
+                )
+                compare_bar_output = gr.Plot(label="模型情感预测对比柱状图")
+            compare_outputs = [compare_html_output, compare_bar_output]
 
         outputs = [text_output, radar_output, wave_output, mel_output, history_output]
-        compare_outputs = [compare_html_output, compare_bar_output]
 
         btn_mic.click(fn=process_audio, inputs=[audio_mic, model_selector], outputs=outputs)
         btn_file.click(fn=process_audio, inputs=[audio_file, model_selector], outputs=outputs)
-        btn_compare_mic.click(fn=process_compare_audio, inputs=[audio_mic], outputs=compare_outputs)
-        btn_compare_file.click(fn=process_compare_audio, inputs=[audio_file], outputs=compare_outputs)
+        if legacy_enabled:
+            btn_compare_mic.click(fn=process_compare_audio, inputs=[audio_mic], outputs=compare_outputs)
+            btn_compare_file.click(fn=process_compare_audio, inputs=[audio_file], outputs=compare_outputs)
         btn_clear.click(fn=clear_history, inputs=[], outputs=outputs)
 
         gr.Markdown(
-            "---\n"
-            "**毕业设计** | 情感类别: 高兴·愤怒·悲伤·中性·恐惧·惊讶 | "
-            "ASR: OpenAI Whisper | SER: CNN+BiLSTM+Attention（早期探索） · Whisper+Transformer Emotion Head（主线）"
+            "---\n" + (
+                "**毕业设计** | 情感类别: 高兴·愤怒·悲伤·中性·恐惧·惊讶 | "
+                "ASR: OpenAI Whisper | SER: Whisper+Transformer Emotion Head（主线）"
+                if not legacy_enabled
+                else "**毕业设计** | 情感类别: 高兴·愤怒·悲伤·中性·恐惧·惊讶 | ASR: OpenAI Whisper | SER: CNN+BiLSTM+Attention（早期探索） · Whisper+Transformer Emotion Head（主线）"
+            )
         )
 
     return app

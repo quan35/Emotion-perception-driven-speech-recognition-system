@@ -6,7 +6,7 @@
 
 - 支持中文与英文语音转写。
 - 支持 `happy`、`angry`、`sad`、`neutral`、`fear`、`surprise` 六类情感识别。
-- 支持早期探索模型与主线模型切换，并支持同一音频的双模型对比。
+- 保留早期探索模型作为历史对照路径；界面默认仅展示主线模型，开启 `legacy.enabled=true` 后可恢复双模型对比。
 - 支持围绕主线模型开展 `Derf` 与 `DyT` 的关键设计对比，同时保留 `LayerNorm` 与其他冻结策略作为兼容配置。
 - 支持从数据整理、预处理、训练到界面推理的完整流程。
 - 支持雷达图、波形图、Mel 频谱图与情感历史趋势可视化。
@@ -19,6 +19,20 @@
 
 ```bash
 pip install -r requirements.txt
+```
+
+如果准备在服务器中通过 `tmux` 后台执行训练脚本或 notebook，请先确认 `tmux` 已安装；若仍需执行 notebook，再额外确认当前 Python 环境可导入 `nbformat` 与 `nbclient`：
+
+```bash
+tmux -V
+python -c "import nbformat, nbclient; print('nbclient ok')"
+```
+
+如果当前环境没有 `sudo`，先执行 `whoami` 确认自己是否已经是 `root`。若输出为 `root`，可直接安装：
+
+```bash
+apt update
+apt install -y tmux
 ```
 
 ### 2. 数据准备
@@ -45,33 +59,49 @@ python preprocessing/audio_preprocess.py
 
 ### 4. 训练步骤
 
-当前仓库有两条训练路线，建议先明确自己要复现的是“早期探索路线”还是“正式主线”。
+当前仓库仍然保留 notebook 路线，但正式主线已经切换为 script-first。若目标是复现实验主线、生成可比的 `summary.json` / `aggregate.json`，或在后续 `4090` 环境中产出论文结果，应以 `scripts/train_shared.py` 作为执行真值；`notebooks/04_train_shared.ipynb` 更适合作为历史复盘、图表查看与单元格调试入口，而不再作为正式主线训练的首选入口。
 
-1. 如果训练早期探索模型 `CNN+BiLSTM+Attention`，先提取 Mel 与 MFCC 特征，再运行 `notebooks/03_train_emotion.ipynb`。
+1. 如果训练早期探索模型 `CNN+BiLSTM+Attention`，先提取 Mel 与 MFCC 特征：
 
 ```bash
 python preprocessing/feature_extract.py
 ```
 
-然后按顺序执行 `notebooks/03_train_emotion.ipynb` 中的“准备数据 -> 构建模型 -> 训练 -> 测试集评估”单元。默认输出包括 `checkpoints/best_emotion.pth` 和 `checkpoints/emotion_history.npz`。
+随后执行 `notebooks/03_train_emotion.ipynb`，或在后台使用：
 
-2. 如果训练正式主线模型 `Whisper + Transformer Emotion Head`，直接运行 `notebooks/04_train_shared.ipynb`，不需要先执行 `feature_extract.py`。该 notebook 会基于 `data/processed/` 自动准备训练数据；当 `training_mode=cached_sequence` 时，还会自动生成 Whisper 序列缓存。
+```bash
+bash scripts/run_notebook_tmux.sh notebooks/03_train_emotion.ipynb baseline_train
+```
 
-然后按顺序执行 `notebooks/04_train_shared.ipynb` 中的“准备数据集 -> 构建模型 -> 训练 -> 测试集评估”单元。当前默认主线配置如下：
+该路线默认输出 `checkpoints/best_emotion.pth` 和 `checkpoints/emotion_history.npz`，主要用于历史对照和可解释性验证。
 
+2. 如果训练正式主线模型 `Whisper + Transformer Emotion Head`，推荐直接使用脚本入口：
+
+```bash
+bash scripts/train_shared_tmux.sh --session-name shared_audit -- --profile cpu_preflight --audit-only
+```
+
+该命令适用于无 GPU 或仅需预检的环境。它不会启动正式训练，而是完成数据筛选、标签策略审计、主/辅数据子集划分、`speaker-group split` 检查以及运行时配置确认。当前 `cpu_preflight` profile 会自动切换到更轻量的 `tiny` Whisper、收紧 batch size，并把运行限制在预检边界内。
+
+当 `4090` 环境可用后，正式主线训练应使用：
+
+```bash
+bash scripts/train_shared_tmux.sh --session-name shared_derf_4090 --log-prefix shared_derf_4090 -- --profile cuda_4090_mainline --norm derf --seed 42
+bash scripts/train_shared_tmux.sh --session-name shared_dyt_4090 --log-prefix shared_dyt_4090 -- --profile cuda_4090_mainline --norm dyt --seed 42
+```
+
+这两条命令共享同一套主线协议，只切换 `norm` 变量，用于执行论文主叙事中的 `Derf / DyT` 关键对比。其中 `--session-name` 指定 tmux 会话名，`--` 后的参数会原样传给 `scripts/train_shared.py`，`--profile cuda_4090_mainline` 表示启用面向正式 GPU 训练的运行配置，而 `--norm derf` 与 `--norm dyt` 则用于固定同一协议下的唯一对比变量。
+
+当前脚本化主线默认执行以下约束，这些约束会在运行时被显式写入 checkpoint 与 summary 元数据：
+
+- `shared_model.variant=transformer_head`
 - `shared_model.training_mode=live_encoder`
 - `shared_model.pooling=attention`
-- `shared_model.norm=derf`
 - `shared_model.freeze_strategy=unfreeze_last_2`
-- `training.best_metric=subset_mean_uar`
-
-当前版本的主线训练还包含以下默认约定：
-
-- 严格主基准仅包含 `RAVDESS`、`CASIA`、`ESD`、`EMODB` 和 `IEMOCAP`，并按数据子集分别执行 `speaker-group split`，避免同一说话人同时出现在训练集、验证集和测试集中。
-- `TESS` 因有效说话人数量不足以稳定支持三路 `speaker-group split`，当前默认作为辅助评估集，不再并入主 checkpoint 选择或主表指标。
-- 每个 epoch 会按 `training.subset_epoch_targets` 对主基准各数据子集做目标采样；当小语料样本不足时，训练集会先全量取一遍，再按类别感知概率有放回补足，进一步减弱 `ESD` 的主导效应。
-- 最佳 checkpoint 统一按 `val_subset_mean_uar` 选择，并以 `val_uar`、`val_loss` 作为并列判定条件。
-- `live_encoder` 路线默认启用带类别权重的 `FocalLoss`、Mel 级训练增强与子集均衡采样，`cached_sequence` 路线继续使用特征级遮蔽、dropout 与噪声增强。
+- `shared_model.norm in {derf, dyt}`，默认候选为 `derf`
+- 数据策略采用 `staged_clean`：保留 `calm->neutral`、`ps/pleasant_surprise->surprise`、`exc->happy`、`fru->angry` 等近邻映射，同时丢弃 `disgust`、`boredom` 与 `IEMOCAP dis` 等当前标签体系不支持的原始情感
+- 主基准仅包含 `RAVDESS`、`CASIA`、`ESD`、`EMODB` 和 `IEMOCAP`，`TESS` 因说话人数量不足而作为辅助评估集单独处理
+- 最佳 checkpoint 统一按 `val_subset_mean_uar -> val_uar -> val_loss` 的链式规则选择
 
 主线训练完成后，典型输出包括：
 
@@ -82,61 +112,21 @@ python preprocessing/feature_extract.py
 - `checkpoints/shared_transformer_head_*_seed<seed>_confusion_matrix.png`
 - `checkpoints/shared_transformer_head_*_aggregate.json`
 
-其中新的 `summary.json` / `aggregate.json` 会额外记录 `selected_val_subset_mean_uar`、`test_subset_mean_uar`、`criterion_name`、`criterion_config` 和 `class_weights`，用于严格协议下的可比分析。
+其中 `summary.json` / `aggregate.json` 会额外记录 `data_policy_audit`、`runtime_profile`、`runtime_eval_sampling`、`selected_val_subset_mean_uar`、`test_subset_mean_uar`、`criterion_name`、`criterion_config` 和 `class_weights`，用于严格协议下的结果复核。
 
-3. 如果需要切换共享模型的实验配置，优先修改 `configs/config.yaml` 中的以下字段：
+3. 如果你需要复查旧 notebook 流程、查看 cell 级日志，或者继续维护历史实验叙事，仍可执行：
 
-```yaml
-shared_model:
-  training_mode: "live_encoder"   # 或 cached_sequence
-  pooling: "attention"            # 或 mean
-  norm: "derf"                    # 关键对比为 derf / dyt
-  freeze_strategy: "unfreeze_last_2"   # 主线默认；兼容 freeze_all / unfreeze_last_4
-
-paths:
-  best_shared_model: "checkpoints/shared_transformer_head_live_encoder_attention_derf_unfreeze_last_2.pth"
-
-training:
-  best_metric: "subset_mean_uar"
-  protocol_version: 2
-  main_subsets: ["ravdess", "casia", "esd", "emodb", "iemocap"]
-  auxiliary_subsets: ["tess"]
-  seed_sweep: [42, 52, 62]
-  subset_sampling_mode: "balanced_class_aware"
-  subset_epoch_targets:
-    ravdess: 1200
-    casia: 900
-    emodb: 700
-    iemocap: 2200
-    esd: 2000
-  live_encoder_focal_loss: true
-  live_encoder_focal_gamma: 1.5
+```bash
+bash scripts/run_notebook_tmux.sh notebooks/04_train_shared.ipynb train_shared_notebook
 ```
 
-### 4.1 关键对比实验
+不过需要明确的是，这一路线现在属于历史 notebook 执行方式，而不是正式主线训练的推荐入口。执行后生成的 `runs/04_train_shared.latest.ipynb` 更适合追踪 notebook 单元格状态，而正式训练的可比结果应优先来自 `scripts/train_shared.py` 产出的 checkpoint 和 summary。
 
-`notebooks/04_train_shared.ipynb` 当前默认只保留两类与论文主叙事直接对应的结果输出，即跨架构对比和 `Derf / DyT` 关键对比。`LayerNorm` 与更多冻结策略仍保留在代码和 checkpoint 兼容路径中，但不再作为 README 推荐的默认实验流程。
-
-1. 跨架构对比要求早期探索 notebook 和主线 notebook 都已完成训练。确保 `checkpoints/emotion_history.npz` 与当前共享模型的 `*_history.npz` 存在后，执行 notebook 第 6 节即可生成 `checkpoints/model_comparison.png`。
-
-2. `Derf` 与 `DyT` 对比统一采用与部署主线一致的协议，即固定 `training_mode=live_encoder`、`pooling=attention`、`freeze_strategy=unfreeze_last_2`，仅替换 `norm`：
-
-```yaml
-shared_model:
-  variant: "transformer_head"
-  training_mode: "live_encoder"
-  pooling: "attention"
-  norm: "derf" # 再切换为 dyt
-  freeze_strategy: "unfreeze_last_2"
-```
-
-完成两次训练后，执行 notebook 第 7 节会读取对应的 `*_history.npz` 与 `*_summary.json`，并输出 `checkpoints/shared_derf_dyt_comparison.png`。
-
-3. 如果需要复查兼容性配置，可以手动将 `norm` 改为 `layernorm`，或将 `freeze_strategy` 改为 `freeze_all`、`unfreeze_last_4`。这些配置仍然受代码支持，但当前仓库不再把它们作为默认论文流程的一部分。
+4. 如果需要切换共享模型的实验配置，优先修改 `configs/config.yaml` 中的 `shared_model`、`training`、`runtime` 与 `data_policy` 字段。对于论文主流程，建议把变量控制在 `norm=derf/dyt` 这一维上，不再把 `freeze_strategy`、`layernorm` 等兼容项混入默认叙事；这些兼容配置仍受代码支持，但当前仓库不再把它们视为正式主线流程的一部分。
 
 ### 5. 推理与界面
 
-完成训练后，可以直接启动 Gradio 界面进行单模型或双模型推理验证。界面默认选择正式主线模型 `Whisper + Transformer Emotion Head`，同时保留早期探索模型用于对照观察。
+完成训练后，可以直接启动 Gradio 界面进行主线推理验证。界面默认仅展示正式主线模型 `Whisper + Transformer Emotion Head`；若需要恢复早期探索模型的对照入口，可在 `configs/config.yaml` 中把 `legacy.enabled` 改为 `true`。
 
 ```bash
 python ui/app.py
@@ -206,6 +196,12 @@ Emotion-perception-driven-speech-recognition-system/
 ├── requirements.txt
 ├── configs/
 │   └── config.yaml
+├── scripts/
+│   ├── evaluate_shared_ui_path.py
+│   ├── execute_notebook_live.py
+│   ├── run_notebook_tmux.sh
+│   ├── train_shared.py
+│   └── train_shared_tmux.sh
 ├── models/
 │   ├── emotion_cnn_bilstm.py
 │   └── whisper_emotion.py
@@ -219,6 +215,7 @@ Emotion-perception-driven-speech-recognition-system/
 │   └── app.py
 ├── utils/
 │   ├── audio_utils.py
+│   ├── data_policy.py
 │   ├── losses.py
 │   ├── split_utils.py
 │   └── visualization.py
@@ -229,6 +226,10 @@ Emotion-perception-driven-speech-recognition-system/
 │   └── 04_train_shared.ipynb
 ├── checkpoints/
 │   └── *.pth / *.npz / *.json / *.png
+├── logs/
+│   └── *.log (运行时生成)
+├── runs/
+│   └── *.executed.<timestamp>.ipynb (仅 notebook 后台执行时生成)
 └── data/
     ├── raw/
     ├── processed/
@@ -236,17 +237,22 @@ Emotion-perception-driven-speech-recognition-system/
     └── features_shared/
 ```
 
-- `configs/` 统一管理音频参数、训练配置、模型超参数和权重路径。
-- `models/` 保存早期探索路线与主线路线的核心实现。
-- `preprocessing/` 负责原始音频整理、常规特征提取和 Whisper 缓存。
-- `inference/` 负责统一推理编排。
-- `ui/` 提供 Gradio 演示入口。
-- `notebooks/` 是当前训练与关键对比的主要入口。
-- `checkpoints/` 保存权重、历史曲线、混淆矩阵与实验摘要。
+- `configs/` 统一管理音频参数、训练配置、模型超参数、运行 profile 和权重路径。
+- `scripts/train_shared.py` 是正式主线训练入口，负责数据策略过滤、主辅数据子集划分、训练、评估与实验摘要输出。
+- `scripts/train_shared_tmux.sh` 用于在 `tmux` 中后台执行正式主线训练脚本。
+- `scripts/run_notebook_tmux.sh` 与 `scripts/execute_notebook_live.py` 保留为历史 notebook 后台执行工具。
+- `scripts/evaluate_shared_ui_path.py` 用于按当前 UI 主线路径复核共享模型结果。
+- `models/` 保存早期探索路线与主线路线的核心实现，其中 `whisper_emotion.py` 集中维护 `DyT`、`Derf` 与 checkpoint 兼容逻辑。
+- `preprocessing/` 负责原始音频整理、常规特征提取和 Whisper 训练数据准备。
+- `utils/data_policy.py` 负责 `staged_clean` 标签策略、样本过滤与数据审计。
+- `notebooks/` 保留原始实验 notebook 模板，适合复盘与图表查看，但不再是正式主线训练的执行真值。
+- `checkpoints/` 保存权重、训练历史、混淆矩阵、曲线图与实验摘要。
+- `logs/` 为脚本或 notebook 后台执行时自动生成的日志目录，`runs/` 仅在 notebook 后台执行时生成执行后的 notebook 文件。
 
 ## 运行注意事项
 
 - 若 `best_emotion.pth` 或 `paths.best_shared_model` 缺失，界面仍可启动，但情感结果可能来自随机权重，不可直接用于实验结论。
-- 当前默认主线 checkpoint 为 `checkpoints/shared_transformer_head_live_encoder_attention_derf_unfreeze_last_2.pth`，对应部署与论文统一使用的主线协议。
-- `live_encoder` 最接近正式主线实验，但显存开销最高；若资源受限，可切换到 `cached_sequence` 做快速结构验证。
+- 当前默认主线 checkpoint 为 `checkpoints/shared_transformer_head_live_encoder_attention_derf_unfreeze_last_2_seed42.pth`，与 `configs/config.yaml` 中的 `paths.best_shared_model` 保持一致。
+- `cpu_preflight` 仅用于无 GPU 环境下的数据审计与流程预检；正式论文结果应在 `cuda_4090_mainline` profile 下生成。
+- `live_encoder` 是正式主线协议；`cached_sequence` 仍可用于快速结构验证，但不再是论文主叙事的默认训练入口。
 - `data/` 通常不是完整随仓库分发的目录，训练前请先确认软链接或挂载路径有效。

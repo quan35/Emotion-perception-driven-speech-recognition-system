@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import yaml
 import numpy as np
 import librosa
@@ -7,7 +8,11 @@ import soundfile as sf
 
 def load_config(config_path="configs/config.yaml"):
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    full_path = os.path.join(project_root, config_path)
+    config_path = Path(config_path)
+    if not config_path.is_absolute():
+        full_path = Path(project_root) / config_path
+    else:
+        full_path = config_path
     with open(full_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 

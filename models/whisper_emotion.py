@@ -42,7 +42,7 @@ WHISPER_DIMS = {
 DEFAULT_SHARED_MODEL_CONFIG = {
     # 默认参数
     "variant": "transformer_head",       # 毕设主线
-    "checkpoint_format": 2,
+    "checkpoint_format": 3,
     "training_mode": "live_encoder",     # 直接输入音频，端到端前向
     "pooling": "attention",              # Attention Pooling
     "norm": "derf",                      # 主线默认采用 Derf 无归一化设计
@@ -56,6 +56,8 @@ DEFAULT_SHARED_MODEL_CONFIG = {
     "attention_pool_hidden": 256,        # Attention Pooling 隐藏维度
     "legacy_hidden_dims": [256, 64],     # legacy_mlp 兼容路径
     "cache_feature_dtype": "float16",
+    "norm_alpha_init_value": 0.5,
+    "derf_shift_init_value": 0.0,
 }
 
 
@@ -122,64 +124,133 @@ def _to_hidden_dims(hidden_dims: Iterable[int]) -> Sequence[int]:
     return dims
 
 
-class DynamicTanh(nn.Module):
-    """DyT：无归一化 Transformer 对比方案。
+class ElementwiseAffine(nn.Module):
+    """Paper-aligned affine wrapper for norm-free pointwise transforms."""
 
-    来自论文 "Transformers without Normalization"，
-    用可学习的逐元素非线性变换替代 LayerNorm：
-
-        DyT(x) = gamma * tanh(alpha * x) + beta
-
-    其中 alpha、gamma、beta 均为可学习参数（维度 = hidden_dim）。
-    """
     def __init__(self, hidden_dim: int):
         super().__init__()
-        self.alpha = nn.Parameter(torch.ones(hidden_dim))
-        self.gamma = nn.Parameter(torch.ones(hidden_dim))
-        self.beta = nn.Parameter(torch.zeros(hidden_dim))
+        self.weight = nn.Parameter(torch.ones(hidden_dim))
+        self.bias = nn.Parameter(torch.zeros(hidden_dim))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.gamma * torch.tanh(self.alpha * x) + self.beta
+        return x * self.weight + self.bias
+
+
+class DynamicTanhCore(nn.Module):
+    """DyT core from *Transformers without Normalization*.
+
+    Core transform:
+        tanh(alpha * x)
+
+    The trainable affine wrapper is intentionally separated so the implementation
+    matches the paper's point-wise core while preserving the existing head interface.
+    """
+
+    def __init__(self, alpha_init_value: float = 0.5):
+        super().__init__()
+        self.alpha = nn.Parameter(torch.tensor(float(alpha_init_value)))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return torch.tanh(self.alpha * x)
+
+
+class DynamicErfCore(nn.Module):
+    """Derf core from *Stronger Normalization-Free Transformers*.
+
+    Core transform:
+        erf(alpha * x + shift)
+    """
+
+    def __init__(self, alpha_init_value: float = 0.5, shift_init_value: float = 0.0):
+        super().__init__()
+        self.alpha = nn.Parameter(torch.tensor(float(alpha_init_value)))
+        self.shift = nn.Parameter(torch.tensor(float(shift_init_value)))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return torch.erf(self.alpha * x + self.shift)
+
+
+class DynamicTanh(nn.Module):
+    """Paper-aligned DyT with explicit affine wrapper."""
+
+    def __init__(self, hidden_dim: int, alpha_init_value: float = 0.5):
+        super().__init__()
+        self.core = DynamicTanhCore(alpha_init_value=alpha_init_value)
+        self.affine = ElementwiseAffine(hidden_dim)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.affine(self.core(x))
 
 
 class DynamicErf(nn.Module):
-    """Derf：当前主线默认候选的无归一化 Transformer 方案。
+    """Paper-aligned Derf with explicit affine wrapper."""
 
-    来自论文 "Stronger Normalization-Free Transformers"，
-    在 DyT 基础上引入额外 shift 参数：
-
-        Derf(x) = gamma * erf(alpha * x + shift) + beta
-
-    其中 alpha、gamma、beta、shift 均为可学习参数。
-    """
-    def __init__(self, hidden_dim: int):
+    def __init__(self, hidden_dim: int, alpha_init_value: float = 0.5, shift_init_value: float = 0.0):
         super().__init__()
-        self.alpha = nn.Parameter(torch.ones(hidden_dim))
-        self.gamma = nn.Parameter(torch.ones(hidden_dim))
-        self.beta = nn.Parameter(torch.zeros(hidden_dim))
-        self.shift = nn.Parameter(torch.zeros(hidden_dim))
+        self.core = DynamicErfCore(
+            alpha_init_value=alpha_init_value,
+            shift_init_value=shift_init_value,
+        )
+        self.affine = ElementwiseAffine(hidden_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.gamma * torch.erf(self.alpha * x + self.shift) + self.beta
+        return self.affine(self.core(x))
 
 
-def build_norm(norm_type: str, hidden_dim: int) -> nn.Module:
-    """构建 Transformer Head 的预处理模块。
-
-    当前主线默认采用 Derf，并将 DyT 作为论文关键对比配置。
-    为保持历史 checkpoint 和工程扩展能力，仍保留 LayerNorm 作为兼容选项：
-      - derf:      DynamicErf，主线默认候选
-      - dyt:       DynamicTanh，关键对比方案
-      - layernorm: 标准 LayerNorm，兼容保留
-    """
+def build_norm(
+    norm_type: str,
+    hidden_dim: int,
+    alpha_init_value: float = 0.5,
+    derf_shift_init_value: float = 0.0,
+) -> nn.Module:
+    """构建 Transformer Head 的预处理模块。"""
     norm_type = _normalize_strategy(norm_type)
     if norm_type == "derf":
-        return DynamicErf(hidden_dim)
+        return DynamicErf(
+            hidden_dim,
+            alpha_init_value=alpha_init_value,
+            shift_init_value=derf_shift_init_value,
+        )
     if norm_type == "dyt":
-        return DynamicTanh(hidden_dim)
+        return DynamicTanh(hidden_dim, alpha_init_value=alpha_init_value)
     if norm_type == "layernorm":
         return nn.LayerNorm(hidden_dim)
     raise ValueError(f"不支持的 norm 类型: {norm_type}")
+
+
+def _looks_like_legacy_normfree_key(key: str) -> bool:
+    return any(token in key for token in ("norm1", "norm2", "output_norm"))
+
+
+def upgrade_shared_state_dict_for_checkpoint(
+    state_dict: Dict[str, torch.Tensor],
+    format_version: int,
+) -> Dict[str, torch.Tensor]:
+    if int(format_version) >= 3:
+        return state_dict
+
+    upgraded: Dict[str, torch.Tensor] = {}
+    for key, value in state_dict.items():
+        if _looks_like_legacy_normfree_key(key) and key.endswith(".gamma"):
+            upgraded[key[:-6] + ".affine.weight"] = value
+            continue
+        if _looks_like_legacy_normfree_key(key) and key.endswith(".beta"):
+            upgraded[key[:-5] + ".affine.bias"] = value
+            continue
+        if _looks_like_legacy_normfree_key(key) and key.endswith(".alpha"):
+            upgraded[key[:-6] + ".core.alpha"] = value.reshape(-1).mean()
+            continue
+        if _looks_like_legacy_normfree_key(key) and key.endswith(".shift"):
+            upgraded[key[:-6] + ".core.shift"] = value.reshape(-1).mean()
+            continue
+        upgraded[key] = value
+    return upgraded
+
+
+def load_shared_checkpoint_state(model: nn.Module, ckpt: Dict[str, Any], strict: bool = True):
+    format_version = int(ckpt.get("format_version", 2))
+    state_dict = upgrade_shared_state_dict_for_checkpoint(ckpt["state_dict"], format_version)
+    return model.load_state_dict(state_dict, strict=strict)
 
 
 class MeanPooling(nn.Module):
@@ -292,16 +363,35 @@ class EmotionTransformerBlock(nn.Module):
     当前主线默认在 Norm₁ 和 Norm₂ 位置使用 Derf，
     同时将 DyT 作为关键对比配置，并保留 LayerNorm 兼容能力。
     """
-    def __init__(self, hidden_dim: int, num_heads: int, ff_mult: int, dropout: float, norm_type: str):
+    def __init__(
+        self,
+        hidden_dim: int,
+        num_heads: int,
+        ff_mult: int,
+        dropout: float,
+        norm_type: str,
+        norm_alpha_init_value: float = 0.5,
+        derf_shift_init_value: float = 0.0,
+    ):
         super().__init__()
-        self.norm1 = build_norm(norm_type, hidden_dim)
+        self.norm1 = build_norm(
+            norm_type,
+            hidden_dim,
+            alpha_init_value=norm_alpha_init_value,
+            derf_shift_init_value=derf_shift_init_value,
+        )
         self.attn = nn.MultiheadAttention(
             embed_dim=hidden_dim,
             num_heads=num_heads,
             dropout=dropout,
             batch_first=True,
         )
-        self.norm2 = build_norm(norm_type, hidden_dim)
+        self.norm2 = build_norm(
+            norm_type,
+            hidden_dim,
+            alpha_init_value=norm_alpha_init_value,
+            derf_shift_init_value=derf_shift_init_value,
+        )
         self.ffn = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim * ff_mult),
             nn.GELU(),
@@ -378,6 +468,8 @@ class WhisperEmotionHead(nn.Module):
         attention_pool_hidden: int = 256,
         legacy_hidden_dims: Sequence[int] = (256, 64),
         whisper_size: Optional[str] = None,
+        norm_alpha_init_value: float = 0.5,
+        derf_shift_init_value: float = 0.0,
     ):
         super().__init__()
         self.encoder = whisper_model.encoder
@@ -397,6 +489,8 @@ class WhisperEmotionHead(nn.Module):
         self.head_layers = int(head_layers)
         self.ff_mult = int(ff_mult)
         self.dropout_p = float(dropout)
+        self.norm_alpha_init_value = float(norm_alpha_init_value)
+        self.derf_shift_init_value = float(derf_shift_init_value)
 
         if self.variant == "transformer_head" and self.head_hidden_dim % self.num_heads != 0:
             raise ValueError("head_hidden_dim 必须能被 num_heads 整除")
@@ -430,11 +524,18 @@ class WhisperEmotionHead(nn.Module):
                     ff_mult=self.ff_mult,
                     dropout=self.dropout_p,
                     norm_type=self.norm_type,
+                    norm_alpha_init_value=self.norm_alpha_init_value,
+                    derf_shift_init_value=self.derf_shift_init_value,
                 )
                 for _ in range(self.head_layers)
             ])
             # 输出阶段默认沿用主线配置，同时兼容 DyT 对比与 LayerNorm 保留路径
-            self.output_norm = build_norm(self.norm_type, self.head_hidden_dim)
+            self.output_norm = build_norm(
+                self.norm_type,
+                self.head_hidden_dim,
+                alpha_init_value=self.norm_alpha_init_value,
+                derf_shift_init_value=self.derf_shift_init_value,
+            )
             # Attention Pooling：聚焦情感关键帧
             self.pool = self._build_pool(self.pooling_type, self.head_hidden_dim, int(attention_pool_hidden))
             # 分类头
@@ -458,6 +559,8 @@ class WhisperEmotionHead(nn.Module):
             "classifier_hidden": int(classifier_hidden),
             "attention_pool_hidden": int(attention_pool_hidden),
             "legacy_hidden_dims": list(legacy_hidden_dims),
+            "norm_alpha_init_value": float(self.norm_alpha_init_value),
+            "derf_shift_init_value": float(self.derf_shift_init_value),
         }
 
     def _build_pool(self, pooling: str, hidden_dim: int, attention_pool_hidden: int) -> nn.Module:
@@ -646,6 +749,8 @@ def build_shared_model_from_config(
         attention_pool_hidden=shared_cfg["attention_pool_hidden"],
         legacy_hidden_dims=shared_cfg["legacy_hidden_dims"],
         whisper_size=shared_cfg.get("whisper_size") or cfg.get("model", {}).get("whisper_size"),
+        norm_alpha_init_value=float(shared_cfg.get("norm_alpha_init_value", 0.5)),
+        derf_shift_init_value=float(shared_cfg.get("derf_shift_init_value", 0.0)),
     )
 
 

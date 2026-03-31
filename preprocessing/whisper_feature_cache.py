@@ -1,7 +1,7 @@
 import os
 import glob
 import json
-from typing import Iterable, Tuple, List, Dict, Optional
+from typing import Iterable, Tuple, List, Dict, Optional, Sequence
 
 import numpy as np
 import torch
@@ -9,6 +9,9 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import whisper
 import soundfile as sf
+
+from utils.audio_utils import pad_or_trim
+from utils.data_policy import build_data_policy_audit, filter_supported_samples
 
 
 CACHE_FORMAT_VERSION = 2
@@ -290,16 +293,131 @@ def _build_mel_batch(audios: List[np.ndarray], srs: List[int], device: torch.dev
     return mel_batch, encoded_lengths
 
 
+def prepare_audio_for_whisper_ser(
+    audio: np.ndarray,
+    sr: int,
+    preprocessor=None,
+    apply_denoise: bool = False,
+) -> np.ndarray:
+    """将原始音频整理成与共享模型训练尽量一致的输入。
+
+    该函数主要服务于推理和 UI-style 评估：
+      1. 可选降噪
+      2. 静音切除
+      3. 峰值归一化
+      4. 按训练配置裁剪/补零到固定时长
+
+    训练侧 `live_encoder` 已经直接读取 `data/processed` 中的预处理结果，
+    因此不会重复经过上述步骤；但训练与推理会共用后续的 mel + mask 构造逻辑。
+    """
+    if sr != WHISPER_SAMPLE_RATE:
+        raise ValueError(f"Unexpected sample_rate={sr}; expected {WHISPER_SAMPLE_RATE}")
+
+    audio = np.asarray(audio, dtype=np.float32)
+    if audio.ndim > 1:
+        audio = audio.mean(axis=1)
+
+    if preprocessor is None:
+        return audio
+
+    working_audio = audio
+    fallback_audio = audio
+
+    if apply_denoise:
+        working_audio = preprocessor.denoise(working_audio)
+        fallback_audio = working_audio
+
+    trimmed_audio = preprocessor.remove_silence(working_audio)
+    min_samples = int(preprocessor.sr * preprocessor.min_dur)
+    if len(trimmed_audio) >= max(1, min_samples):
+        working_audio = trimmed_audio
+    else:
+        working_audio = fallback_audio
+
+    working_audio = preprocessor.normalize(working_audio)
+    working_audio = pad_or_trim(working_audio, preprocessor.target_samples)
+    return working_audio.astype(np.float32, copy=False)
+
+
+def build_attention_mask_from_encoded_lengths(
+    encoded_lengths: Sequence[int],
+    device: torch.device,
+) -> torch.Tensor:
+    encoded_lengths = [max(1, min(int(length), WHISPER_ENCODED_FRAMES)) for length in encoded_lengths]
+    return torch.arange(WHISPER_ENCODED_FRAMES, device=device).unsqueeze(0) < torch.tensor(
+        encoded_lengths, device=device
+    ).unsqueeze(1)
+
+
 def build_whisper_mel_batch(
     audios: List[np.ndarray],
     srs: List[int],
     device: torch.device,
+    encoded_lengths: Optional[Sequence[int]] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    mel_batch, encoded_lengths = _build_mel_batch(audios, srs, device)
-    attention_mask = torch.arange(WHISPER_ENCODED_FRAMES, device=device).unsqueeze(0) < torch.tensor(
-        encoded_lengths, device=device
-    ).unsqueeze(1)
+    mel_batch, inferred_lengths = _build_mel_batch(audios, srs, device)
+    if encoded_lengths is None:
+        effective_lengths = inferred_lengths
+    else:
+        if len(encoded_lengths) != len(inferred_lengths):
+            raise ValueError(
+                "encoded_lengths 数量与 batch 大小不一致: "
+                f"{len(encoded_lengths)} != {len(inferred_lengths)}"
+            )
+        effective_lengths = [int(length) for length in encoded_lengths]
+
+    attention_mask = build_attention_mask_from_encoded_lengths(effective_lengths, device)
     return mel_batch, attention_mask
+
+
+def build_whisper_ser_batch_from_raw_audio(
+    audios: List[np.ndarray],
+    srs: List[int],
+    device: torch.device,
+    preprocessor,
+    apply_denoise: bool = False,
+    apply_denoise_flags: Optional[Sequence[bool]] = None,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    if len(audios) != len(srs):
+        raise ValueError(f"audios/srs batch 大小不一致: {len(audios)} != {len(srs)}")
+
+    if apply_denoise_flags is None:
+        denoise_flags = [bool(apply_denoise)] * len(audios)
+    else:
+        if len(apply_denoise_flags) != len(audios):
+            raise ValueError(
+                "apply_denoise_flags 数量与 batch 大小不一致: "
+                f"{len(apply_denoise_flags)} != {len(audios)}"
+            )
+        denoise_flags = [bool(flag) for flag in apply_denoise_flags]
+
+    prepared_audios = [
+        prepare_audio_for_whisper_ser(
+            audio,
+            sr,
+            preprocessor=preprocessor,
+            apply_denoise=denoise_flags[idx],
+        )
+        for idx, (audio, sr) in enumerate(zip(audios, srs))
+    ]
+    prepared_srs = [WHISPER_SAMPLE_RATE] * len(prepared_audios)
+    return build_whisper_mel_batch(prepared_audios, prepared_srs, device)
+
+
+def build_whisper_ser_input_from_raw_audio(
+    audio: np.ndarray,
+    sr: int,
+    device: torch.device,
+    preprocessor,
+    apply_denoise: bool = False,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    return build_whisper_ser_batch_from_raw_audio(
+        audios=[audio],
+        srs=[sr],
+        device=device,
+        preprocessor=preprocessor,
+        apply_denoise=apply_denoise,
+    )
 
 
 def extract_whisper_pooled_features(
@@ -509,6 +627,7 @@ def prepare_whisper_feature_dataset(
     overwrite: bool = False,
     num_workers: int = 0,
     prefetch_factor: int = 2,
+    samples: Optional[List[Tuple[str, int]]] = None,
 ) -> Tuple[Dataset, Dict]:
     """Legacy helper that always returns pooled Whisper features."""
 
@@ -519,7 +638,12 @@ def prepare_whisper_feature_dataset(
 
     from utils.audio_utils import LABEL2ID
 
-    samples = build_sample_list(processed_dir, LABEL2ID, subsets=subsets)
+    if samples is None:
+        raw_samples = build_sample_list(processed_dir, LABEL2ID, subsets=subsets)
+        samples, data_policy_audit = filter_supported_samples(raw_samples, cfg)
+    else:
+        samples = list(samples)
+        data_policy_audit = build_data_policy_audit(samples, cfg)
     print(f"共 {len(samples)} 个样本")
 
     features_path, labels_path, meta_path = extract_whisper_pooled_features(
@@ -535,6 +659,7 @@ def prepare_whisper_feature_dataset(
     )
 
     meta = _read_cache_meta(meta_path)
+    meta["data_policy_audit"] = data_policy_audit
     dataset = WhisperPooledFeatureDataset(features_path, labels_path, feature_dtype=_resolve_np_dtype(feature_dtype))
     return dataset, meta
 
@@ -549,6 +674,7 @@ def prepare_whisper_training_data(
     overwrite: bool = False,
     num_workers: int = 0,
     prefetch_factor: int = 2,
+    samples: Optional[List[Tuple[str, int]]] = None,
 ) -> Tuple[Dataset, Dict]:
     """Prepare Whisper training data according to shared_model.training_mode."""
 
@@ -562,7 +688,12 @@ def prepare_whisper_training_data(
 
     from utils.audio_utils import LABEL2ID
 
-    samples = build_sample_list(processed_dir, LABEL2ID, subsets=subsets)
+    if samples is None:
+        raw_samples = build_sample_list(processed_dir, LABEL2ID, subsets=subsets)
+        samples, data_policy_audit = filter_supported_samples(raw_samples, cfg)
+    else:
+        samples = list(samples)
+        data_policy_audit = build_data_policy_audit(samples, cfg)
     print(f"共 {len(samples)} 个样本")
 
     if training_mode == TRAINING_MODE_LIVE_ENCODER:
@@ -572,6 +703,7 @@ def prepare_whisper_training_data(
             "training_mode": TRAINING_MODE_LIVE_ENCODER,
             "whisper_size": whisper_size,
             "num_samples": len(samples),
+            "data_policy_audit": data_policy_audit,
         }
 
     if training_mode == TRAINING_MODE_CACHED_SEQUENCE:
@@ -589,6 +721,7 @@ def prepare_whisper_training_data(
         )
         meta = _read_cache_meta(meta_path)
         meta["training_mode"] = TRAINING_MODE_CACHED_SEQUENCE
+        meta["data_policy_audit"] = data_policy_audit
         dataset = WhisperSequenceFeatureDataset(
             features_path,
             labels_path,
@@ -611,6 +744,7 @@ def prepare_whisper_training_data(
         )
         meta = _read_cache_meta(meta_path)
         meta["training_mode"] = TRAINING_MODE_CACHED_POOLED
+        meta["data_policy_audit"] = data_policy_audit
         dataset = WhisperPooledFeatureDataset(
             features_path,
             labels_path,
