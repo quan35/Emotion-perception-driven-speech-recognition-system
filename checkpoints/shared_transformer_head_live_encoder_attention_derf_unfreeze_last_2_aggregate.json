@@ -1,16 +1,6 @@
 {
   "protocol_version": 2,
   "experiment_stem": "shared_transformer_head_live_encoder_attention_derf_unfreeze_last_2",
-  "included_subsets": [
-    "ravdess",
-    "casia",
-    "esd",
-    "emodb",
-    "iemocap"
-  ],
-  "auxiliary_subsets": [
-    "tess"
-  ],
   "num_runs": 1,
   "num_seeds": 1,
   "seeds": [
@@ -21,49 +11,59 @@
   ],
   "aggregate_mean_std": {
     "best_val_loss": {
-      "mean": 0.3365634154789377,
+      "mean": 0.33627085699816084,
       "std": 0.0
     },
     "best_val_acc": {
-      "mean": 0.7811908268462024,
+      "mean": 0.779305966991113,
       "std": 0.0
     },
     "selected_val_uar": {
-      "mean": 0.6996795354800996,
+      "mean": 0.7093479126323015,
       "std": 0.0
     },
     "selected_val_subset_mean_uar": {
-      "mean": 0.6110544647114162,
+      "mean": 0.6679420372257623,
       "std": 0.0
     },
     "test_acc": {
-      "mean": 0.7368873602751504,
+      "mean": 0.7275474956822107,
       "std": 0.0
     },
     "test_subset_mean_uar": {
-      "mean": 0.609467433676877,
+      "mean": 0.6675870710368426,
       "std": 0.0
     },
     "macro_f1": {
-      "mean": 0.7048815692034301,
+      "mean": 0.7057249514951054,
       "std": 0.0
     },
     "weighted_f1": {
-      "mean": 0.7327014831785837,
+      "mean": 0.7226495213250678,
       "std": 0.0
     },
     "uar": {
-      "mean": 0.7265750638650065,
+      "mean": 0.7114440820122753,
       "std": 0.0
     }
   },
-  "best_val_loss": 0.3365634154789377,
-  "best_val_acc": 0.7811908268462024,
-  "selected_val_uar": 0.6996795354800996,
-  "selected_val_subset_mean_uar": 0.6110544647114162,
-  "test_acc": 0.7368873602751504,
-  "test_subset_mean_uar": 0.609467433676877,
-  "macro_f1": 0.7048815692034301,
-  "weighted_f1": 0.7327014831785837,
-  "uar": 0.7265750638650065
+  "included_subsets": [
+    "ravdess",
+    "casia",
+    "esd",
+    "emodb",
+    "iemocap"
+  ],
+  "auxiliary_subsets": [
+    "tess"
+  ],
+  "best_val_loss": 0.33627085699816084,
+  "best_val_acc": 0.779305966991113,
+  "selected_val_uar": 0.7093479126323015,
+  "selected_val_subset_mean_uar": 0.6679420372257623,
+  "test_acc": 0.7275474956822107,
+  "test_subset_mean_uar": 0.6675870710368426,
+  "macro_f1": 0.7057249514951054,
+  "weighted_f1": 0.7226495213250678,
+  "uar": 0.7114440820122753
 }

@@ -1,0 +1,69 @@
+{
+  "protocol_version": 2,
+  "experiment_stem": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2",
+  "num_runs": 1,
+  "num_seeds": 1,
+  "seeds": [
+    42
+  ],
+  "source_summary_filenames": [
+    "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2_seed42_summary.json"
+  ],
+  "aggregate_mean_std": {
+    "best_val_loss": {
+      "mean": 0.33653648881501014,
+      "std": 0.0
+    },
+    "best_val_acc": {
+      "mean": 0.7803639441388066,
+      "std": 0.0
+    },
+    "selected_val_uar": {
+      "mean": 0.7176046171592988,
+      "std": 0.0
+    },
+    "selected_val_subset_mean_uar": {
+      "mean": 0.6723475018644146,
+      "std": 0.0
+    },
+    "test_acc": {
+      "mean": 0.7258203799654577,
+      "std": 0.0
+    },
+    "test_subset_mean_uar": {
+      "mean": 0.6659609546557351,
+      "std": 0.0
+    },
+    "macro_f1": {
+      "mean": 0.7023180687757362,
+      "std": 0.0
+    },
+    "weighted_f1": {
+      "mean": 0.7206174238362153,
+      "std": 0.0
+    },
+    "uar": {
+      "mean": 0.7096653663911264,
+      "std": 0.0
+    }
+  },
+  "included_subsets": [
+    "ravdess",
+    "casia",
+    "esd",
+    "emodb",
+    "iemocap"
+  ],
+  "auxiliary_subsets": [
+    "tess"
+  ],
+  "best_val_loss": 0.33653648881501014,
+  "best_val_acc": 0.7803639441388066,
+  "selected_val_uar": 0.7176046171592988,
+  "selected_val_subset_mean_uar": 0.6723475018644146,
+  "test_acc": 0.7258203799654577,
+  "test_subset_mean_uar": 0.6659609546557351,
+  "macro_f1": 0.7023180687757362,
+  "weighted_f1": 0.7206174238362153,
+  "uar": 0.7096653663911264
+}

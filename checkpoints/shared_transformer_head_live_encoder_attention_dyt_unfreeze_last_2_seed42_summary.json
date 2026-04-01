@@ -3,6 +3,7 @@
   "num_runs": 1,
   "experiment_name": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2_seed42",
   "experiment_stem": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2",
+  "canonical_experiment_stem": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2",
   "variant": "transformer_head",
   "training_mode": "live_encoder",
   "seed": 42,
@@ -32,11 +33,11 @@
     "excluded_subsets": [
       "tess"
     ],
-    "total_samples": 45587,
+    "total_samples": 45306,
     "total_groups": 68,
-    "train_samples": 36182,
-    "val_samples": 4753,
-    "test_samples": 4652,
+    "train_samples": 35948,
+    "val_samples": 4726,
+    "test_samples": 4632,
     "train_groups": 54,
     "val_groups": 7,
     "test_groups": 7,
@@ -48,11 +49,11 @@
       "iemocap": 10
     },
     "subset_sample_counts": {
-      "ravdess": 1440,
+      "ravdess": 1248,
       "casia": 1200,
       "esd": 34997,
-      "emodb": 535,
-      "iemocap": 7415
+      "emodb": 448,
+      "iemocap": 7413
     },
     "train_subset_group_counts": {
       "ravdess": 20,
@@ -76,46 +77,46 @@
       "iemocap": 1
     },
     "train_subset_sample_counts": {
-      "ravdess": 1200,
+      "ravdess": 1040,
       "casia": 600,
       "esd": 27998,
-      "emodb": 445,
-      "iemocap": 5939
+      "emodb": 373,
+      "iemocap": 5937
     },
     "val_subset_sample_counts": {
-      "ravdess": 120,
+      "ravdess": 104,
       "casia": 300,
       "esd": 3499,
-      "emodb": 55,
+      "emodb": 44,
       "iemocap": 779
     },
     "test_subset_sample_counts": {
-      "ravdess": 120,
+      "ravdess": 104,
       "casia": 300,
       "esd": 3500,
-      "emodb": 35,
+      "emodb": 31,
       "iemocap": 697
     },
     "train_subset_distribution": {
       "casia": 600,
-      "emodb": 445,
+      "emodb": 373,
       "esd": 27998,
-      "iemocap": 5939,
-      "ravdess": 1200
+      "iemocap": 5937,
+      "ravdess": 1040
     },
     "val_subset_distribution": {
       "casia": 300,
-      "emodb": 55,
+      "emodb": 44,
       "esd": 3499,
       "iemocap": 779,
-      "ravdess": 120
+      "ravdess": 104
     },
     "test_subset_distribution": {
       "casia": 300,
-      "emodb": 35,
+      "emodb": 31,
       "esd": 3500,
       "iemocap": 697,
-      "ravdess": 120
+      "ravdess": 104
     },
     "subset_speakers": {
       "ravdess": [
@@ -220,7 +221,7 @@
     "dataset_audit": {
       "ravdess": {
         "num_groups": 24,
-        "num_samples": 1440,
+        "num_samples": 1248,
         "speaker_ids": [
           "01",
           "02",
@@ -264,7 +265,7 @@
       },
       "tess": {
         "num_groups": 2,
-        "num_samples": 2600,
+        "num_samples": 2200,
         "speaker_ids": [
           "OAF",
           "YAF"
@@ -302,7 +303,7 @@
       },
       "emodb": {
         "num_groups": 10,
-        "num_samples": 535,
+        "num_samples": 448,
         "speaker_ids": [
           "03",
           "08",
@@ -320,7 +321,7 @@
       },
       "iemocap": {
         "num_groups": 10,
-        "num_samples": 7415,
+        "num_samples": 7413,
         "speaker_ids": [
           "Ses01F",
           "Ses01M",
@@ -348,7 +349,7 @@
           "YAF"
         ],
         "num_groups": 2,
-        "num_samples": 2600,
+        "num_samples": 2200,
         "folds": [
           {
             "fold_index": 1,
@@ -358,8 +359,8 @@
             "test_group_ids": [
               "OAF"
             ],
-            "train_samples": 1200,
-            "test_samples": 1400
+            "train_samples": 1000,
+            "test_samples": 1200
           },
           {
             "fold_index": 2,
@@ -369,20 +370,198 @@
             "test_group_ids": [
               "YAF"
             ],
-            "train_samples": 1400,
-            "test_samples": 1200
+            "train_samples": 1200,
+            "test_samples": 1000
           }
         ],
         "normalization_warnings": [
           "TESS speaker alias normalized: OA -> OAF (data/processed/tess/neutral/tess_OA_bite_neutral.wav)"
         ]
       }
+    },
+    "data_policy_audit": {
+      "enabled": true,
+      "profile": "staged_clean",
+      "total_input_samples": 48187,
+      "total_kept_samples": 47506,
+      "total_dropped_samples": 681,
+      "per_subset": {
+        "ravdess": {
+          "input_samples": 1440,
+          "kept_samples": 1248,
+          "dropped_samples": 192,
+          "unknown_source_labels": 0,
+          "input_source_labels": {
+            "01": 96,
+            "02": 192,
+            "03": 192,
+            "04": 192,
+            "05": 192,
+            "06": 192,
+            "07": 192,
+            "08": 192
+          },
+          "kept_source_labels": {
+            "01": 96,
+            "02": 192,
+            "03": 192,
+            "04": 192,
+            "05": 192,
+            "06": 192,
+            "08": 192
+          },
+          "dropped_source_labels": {
+            "07": 192
+          },
+          "drop_source_labels_config": [
+            "07"
+          ]
+        },
+        "casia": {
+          "input_samples": 1200,
+          "kept_samples": 1200,
+          "dropped_samples": 0,
+          "unknown_source_labels": 0,
+          "input_source_labels": {
+            "angry": 200,
+            "fear": 200,
+            "happy": 200,
+            "neutral": 200,
+            "sad": 200,
+            "surprise": 200
+          },
+          "kept_source_labels": {
+            "angry": 200,
+            "fear": 200,
+            "happy": 200,
+            "neutral": 200,
+            "sad": 200,
+            "surprise": 200
+          },
+          "dropped_source_labels": {},
+          "drop_source_labels_config": []
+        },
+        "tess": {
+          "input_samples": 2600,
+          "kept_samples": 2200,
+          "dropped_samples": 400,
+          "unknown_source_labels": 0,
+          "input_source_labels": {
+            "angry": 400,
+            "disgust": 400,
+            "fear": 400,
+            "happy": 400,
+            "neutral": 400,
+            "ps": 200,
+            "sad": 400
+          },
+          "kept_source_labels": {
+            "angry": 400,
+            "fear": 400,
+            "happy": 400,
+            "neutral": 400,
+            "ps": 200,
+            "sad": 400
+          },
+          "dropped_source_labels": {
+            "disgust": 400
+          },
+          "drop_source_labels_config": [
+            "disgust"
+          ]
+        },
+        "esd": {
+          "input_samples": 34997,
+          "kept_samples": 34997,
+          "dropped_samples": 0,
+          "unknown_source_labels": 0,
+          "input_source_labels": {
+            "angry": 6998,
+            "happy": 6999,
+            "neutral": 7000,
+            "sad": 7000,
+            "surprise": 7000
+          },
+          "kept_source_labels": {
+            "angry": 6998,
+            "happy": 6999,
+            "neutral": 7000,
+            "sad": 7000,
+            "surprise": 7000
+          },
+          "dropped_source_labels": {},
+          "drop_source_labels_config": []
+        },
+        "emodb": {
+          "input_samples": 535,
+          "kept_samples": 448,
+          "dropped_samples": 87,
+          "unknown_source_labels": 0,
+          "input_source_labels": {
+            "A": 217,
+            "E": 33,
+            "F": 50,
+            "L": 54,
+            "N": 53,
+            "T": 44,
+            "W": 84
+          },
+          "kept_source_labels": {
+            "A": 217,
+            "F": 50,
+            "N": 53,
+            "T": 44,
+            "W": 84
+          },
+          "dropped_source_labels": {
+            "E": 33,
+            "L": 54
+          },
+          "drop_source_labels_config": [
+            "l",
+            "e"
+          ]
+        },
+        "iemocap": {
+          "input_samples": 7415,
+          "kept_samples": 7413,
+          "dropped_samples": 2,
+          "unknown_source_labels": 0,
+          "input_source_labels": {
+            "ang": 1078,
+            "dis": 2,
+            "exc": 1024,
+            "fea": 39,
+            "fru": 1833,
+            "hap": 595,
+            "neu": 1676,
+            "sad": 1082,
+            "sur": 86
+          },
+          "kept_source_labels": {
+            "ang": 1078,
+            "exc": 1024,
+            "fea": 39,
+            "fru": 1833,
+            "hap": 595,
+            "neu": 1676,
+            "sad": 1082,
+            "sur": 86
+          },
+          "dropped_source_labels": {
+            "dis": 2
+          },
+          "drop_source_labels_config": [
+            "dis"
+          ]
+        }
+      }
     }
   },
   "dataset_audit": {
     "ravdess": {
       "num_groups": 24,
-      "num_samples": 1440,
+      "num_samples": 1248,
       "speaker_ids": [
         "01",
         "02",
@@ -426,7 +605,7 @@
     },
     "tess": {
       "num_groups": 2,
-      "num_samples": 2600,
+      "num_samples": 2200,
       "speaker_ids": [
         "OAF",
         "YAF"
@@ -464,7 +643,7 @@
     },
     "emodb": {
       "num_groups": 10,
-      "num_samples": 535,
+      "num_samples": 448,
       "speaker_ids": [
         "03",
         "08",
@@ -482,7 +661,7 @@
     },
     "iemocap": {
       "num_groups": 10,
-      "num_samples": 7415,
+      "num_samples": 7413,
       "speaker_ids": [
         "Ses01F",
         "Ses01M",
@@ -502,6 +681,184 @@
   "dataset_normalization_warnings": [
     "TESS speaker alias normalized: OA -> OAF (data/processed/tess/neutral/tess_OA_bite_neutral.wav)"
   ],
+  "data_policy_audit": {
+    "enabled": true,
+    "profile": "staged_clean",
+    "total_input_samples": 48187,
+    "total_kept_samples": 47506,
+    "total_dropped_samples": 681,
+    "per_subset": {
+      "ravdess": {
+        "input_samples": 1440,
+        "kept_samples": 1248,
+        "dropped_samples": 192,
+        "unknown_source_labels": 0,
+        "input_source_labels": {
+          "01": 96,
+          "02": 192,
+          "03": 192,
+          "04": 192,
+          "05": 192,
+          "06": 192,
+          "07": 192,
+          "08": 192
+        },
+        "kept_source_labels": {
+          "01": 96,
+          "02": 192,
+          "03": 192,
+          "04": 192,
+          "05": 192,
+          "06": 192,
+          "08": 192
+        },
+        "dropped_source_labels": {
+          "07": 192
+        },
+        "drop_source_labels_config": [
+          "07"
+        ]
+      },
+      "casia": {
+        "input_samples": 1200,
+        "kept_samples": 1200,
+        "dropped_samples": 0,
+        "unknown_source_labels": 0,
+        "input_source_labels": {
+          "angry": 200,
+          "fear": 200,
+          "happy": 200,
+          "neutral": 200,
+          "sad": 200,
+          "surprise": 200
+        },
+        "kept_source_labels": {
+          "angry": 200,
+          "fear": 200,
+          "happy": 200,
+          "neutral": 200,
+          "sad": 200,
+          "surprise": 200
+        },
+        "dropped_source_labels": {},
+        "drop_source_labels_config": []
+      },
+      "tess": {
+        "input_samples": 2600,
+        "kept_samples": 2200,
+        "dropped_samples": 400,
+        "unknown_source_labels": 0,
+        "input_source_labels": {
+          "angry": 400,
+          "disgust": 400,
+          "fear": 400,
+          "happy": 400,
+          "neutral": 400,
+          "ps": 200,
+          "sad": 400
+        },
+        "kept_source_labels": {
+          "angry": 400,
+          "fear": 400,
+          "happy": 400,
+          "neutral": 400,
+          "ps": 200,
+          "sad": 400
+        },
+        "dropped_source_labels": {
+          "disgust": 400
+        },
+        "drop_source_labels_config": [
+          "disgust"
+        ]
+      },
+      "esd": {
+        "input_samples": 34997,
+        "kept_samples": 34997,
+        "dropped_samples": 0,
+        "unknown_source_labels": 0,
+        "input_source_labels": {
+          "angry": 6998,
+          "happy": 6999,
+          "neutral": 7000,
+          "sad": 7000,
+          "surprise": 7000
+        },
+        "kept_source_labels": {
+          "angry": 6998,
+          "happy": 6999,
+          "neutral": 7000,
+          "sad": 7000,
+          "surprise": 7000
+        },
+        "dropped_source_labels": {},
+        "drop_source_labels_config": []
+      },
+      "emodb": {
+        "input_samples": 535,
+        "kept_samples": 448,
+        "dropped_samples": 87,
+        "unknown_source_labels": 0,
+        "input_source_labels": {
+          "A": 217,
+          "E": 33,
+          "F": 50,
+          "L": 54,
+          "N": 53,
+          "T": 44,
+          "W": 84
+        },
+        "kept_source_labels": {
+          "A": 217,
+          "F": 50,
+          "N": 53,
+          "T": 44,
+          "W": 84
+        },
+        "dropped_source_labels": {
+          "E": 33,
+          "L": 54
+        },
+        "drop_source_labels_config": [
+          "l",
+          "e"
+        ]
+      },
+      "iemocap": {
+        "input_samples": 7415,
+        "kept_samples": 7413,
+        "dropped_samples": 2,
+        "unknown_source_labels": 0,
+        "input_source_labels": {
+          "ang": 1078,
+          "dis": 2,
+          "exc": 1024,
+          "fea": 39,
+          "fru": 1833,
+          "hap": 595,
+          "neu": 1676,
+          "sad": 1082,
+          "sur": 86
+        },
+        "kept_source_labels": {
+          "ang": 1078,
+          "exc": 1024,
+          "fea": 39,
+          "fru": 1833,
+          "hap": 595,
+          "neu": 1676,
+          "sad": 1082,
+          "sur": 86
+        },
+        "dropped_source_labels": {
+          "dis": 2
+        },
+        "drop_source_labels_config": [
+          "dis"
+        ]
+      }
+    }
+  },
   "auxiliary_eval_plan": {
     "tess": {
       "subset": "tess",
@@ -510,7 +867,7 @@
         "YAF"
       ],
       "num_groups": 2,
-      "num_samples": 2600,
+      "num_samples": 2200,
       "folds": [
         {
           "fold_index": 1,
@@ -520,8 +877,8 @@
           "test_group_ids": [
             "OAF"
           ],
-          "train_samples": 1200,
-          "test_samples": 1400
+          "train_samples": 1000,
+          "test_samples": 1200
         },
         {
           "fold_index": 2,
@@ -531,13 +888,59 @@
           "test_group_ids": [
             "YAF"
           ],
-          "train_samples": 1400,
-          "test_samples": 1200
+          "train_samples": 1200,
+          "test_samples": 1000
         }
       ],
       "normalization_warnings": [
         "TESS speaker alias normalized: OA -> OAF (data/processed/tess/neutral/tess_OA_bite_neutral.wav)"
       ]
+    }
+  },
+  "runtime_profile": {
+    "profile": "cuda_4090_mainline",
+    "device": "cuda",
+    "smoke_enabled": false,
+    "smoke_target_per_subset": null,
+    "configured_whisper_size": "small",
+    "effective_whisper_size": "small"
+  },
+  "runtime_eval_sampling": {
+    "val": {
+      "applied": false,
+      "limit_per_subset": null,
+      "raw_subset_counts": {
+        "ravdess": 104,
+        "casia": 300,
+        "esd": 3499,
+        "emodb": 44,
+        "iemocap": 779
+      },
+      "effective_subset_counts": {
+        "ravdess": 104,
+        "casia": 300,
+        "esd": 3499,
+        "emodb": 44,
+        "iemocap": 779
+      }
+    },
+    "test": {
+      "applied": false,
+      "limit_per_subset": null,
+      "raw_subset_counts": {
+        "ravdess": 104,
+        "casia": 300,
+        "esd": 3500,
+        "emodb": 31,
+        "iemocap": 697
+      },
+      "effective_subset_counts": {
+        "ravdess": 104,
+        "casia": 300,
+        "esd": 3500,
+        "emodb": 31,
+        "iemocap": 697
+      }
     }
   },
   "norm": "dyt",
@@ -548,191 +951,176 @@
     "gamma": 1.5,
     "label_smoothing": 0.02,
     "alpha": [
-      0.8176421523094177,
-      0.7008455395698547,
-      0.8726406693458557,
-      0.7582188844680786,
-      1.7890881299972534,
-      1.061564564704895
+      0.7490612864494324,
+      0.5348129868507385,
+      0.8536238670349121,
+      0.6791309118270874,
+      1.9184931516647339,
+      1.2648779153823853
     ],
     "weighted": true
   },
   "class_weights": {
-    "happy": 0.8176421523094177,
-    "angry": 0.7008455395698547,
-    "sad": 0.8726406693458557,
-    "neutral": 0.7582188844680786,
-    "fear": 1.7890881299972534,
-    "surprise": 1.061564564704895
+    "happy": 0.7490612864494324,
+    "angry": 0.5348129868507385,
+    "sad": 0.8536238670349121,
+    "neutral": 0.6791309118270874,
+    "fear": 1.9184931516647339,
+    "surprise": 1.2648779153823853
   },
   "virtual_train_class_counts": {
-    "happy": 1294.0825565846476,
-    "angry": 1509.742695045391,
-    "sad": 1212.5224781690026,
-    "neutral": 1395.5026170246472,
-    "fear": 591.4166178403201,
-    "surprise": 996.733035335992
+    "happy": 1158.3367928191124,
+    "angry": 1622.3713220426257,
+    "sad": 1016.4491562554523,
+    "neutral": 1277.611190953111,
+    "fear": 452.26393801583293,
+    "surprise": 685.9675999138657
   },
   "subset_sampling_mode": "balanced_class_aware",
-  "subset_sampling_with_replacement": true,
+  "subset_sampling_with_replacement": false,
   "subset_class_balance_power": 0.5,
   "subset_epoch_targets": {
-    "ravdess": 1200,
-    "casia": 900,
+    "ravdess": 1040,
+    "casia": 600,
     "esd": 2000,
-    "emodb": 700,
+    "emodb": 373,
     "iemocap": 2200
   },
-  "epochs_ran": 34,
+  "epochs_ran": 33,
   "best_metric": "val_subset_mean_uar",
-  "best_epoch": 26,
-  "selected_val_acc": 0.7849779086892489,
-  "selected_val_macro_f1": 0.7275284302161605,
-  "selected_val_uar": 0.727478170399796,
-  "selected_val_subset_mean_uar": 0.6175974687873794,
-  "selected_val_loss": 0.4020845655461067,
-  "best_val_loss": 0.3344678973762231,
-  "best_val_acc": 0.7849779086892489,
-  "best_val_macro_f1": 0.7289199228091766,
-  "best_val_uar": 0.7387431730775678,
-  "best_val_subset_mean_uar": 0.6175974687873794,
-  "val_subset_mean_uar": 0.6175974687873794,
-  "test_acc": 0.7293637145313844,
-  "macro_f1": 0.6928373100424984,
-  "weighted_f1": 0.721764964992047,
-  "uar": 0.7219248510806261,
-  "test_subset_mean_uar": 0.6073390248354142,
+  "best_epoch": 25,
+  "selected_val_acc": 0.7683030046550995,
+  "selected_val_macro_f1": 0.7200715033001978,
+  "selected_val_uar": 0.7176046171592988,
+  "selected_val_subset_mean_uar": 0.6723475018644146,
+  "selected_val_loss": 0.3821165917218173,
+  "best_val_loss": 0.33653648881501014,
+  "best_val_acc": 0.7803639441388066,
+  "best_val_macro_f1": 0.7264368255004086,
+  "best_val_uar": 0.727679317813733,
+  "best_val_subset_mean_uar": 0.6723475018644146,
+  "val_subset_mean_uar": 0.6723475018644146,
+  "test_acc": 0.7258203799654577,
+  "macro_f1": 0.7023180687757362,
+  "weighted_f1": 0.7206174238362153,
+  "uar": 0.7096653663911264,
+  "test_subset_mean_uar": 0.6659609546557351,
   "per_subset_val_metrics": {
     "ravdess": {
-      "samples": 120,
-      "loss": 0.7419810692469279,
-      "acc": 0.7,
-      "macro_f1": 0.6895226289749615,
-      "uar": 0.6996527777777777
+      "samples": 104,
+      "loss": 0.4947739997162269,
+      "acc": 0.7692307692307693,
+      "macro_f1": 0.7735198373159203,
+      "uar": 0.7708333333333334
     },
     "casia": {
       "samples": 300,
-      "loss": 0.971429665631149,
-      "acc": 0.6233333333333333,
-      "macro_f1": 0.601404225867455,
-      "uar": 0.6233333333333333
+      "loss": 0.8364316852577031,
+      "acc": 0.6366666666666667,
+      "macro_f1": 0.6166140810409949,
+      "uar": 0.6366666666666666
     },
     "esd": {
       "samples": 3499,
-      "loss": 0.27500866232498433,
-      "acc": 0.8253786796227494,
-      "macro_f1": 0.6890920465355297,
-      "uar": 0.6877961714013217
+      "loss": 0.29131672741506154,
+      "acc": 0.8016576164618462,
+      "macro_f1": 0.8067200242712534,
+      "uar": 0.8016247700797058
     },
     "emodb": {
-      "samples": 55,
-      "loss": 1.2221372777765447,
-      "acc": 0.5818181818181818,
-      "macro_f1": 0.5420791768617855,
-      "uar": 0.5436507936507936
+      "samples": 44,
+      "loss": 0.681499099189585,
+      "acc": 0.6136363636363636,
+      "macro_f1": 0.6425332562174668,
+      "uar": 0.65
     },
     "iemocap": {
       "samples": 779,
-      "loss": 0.6234051131467611,
-      "acc": 0.693196405648267,
-      "macro_f1": 0.5422317268353646,
-      "uar": 0.5335542677736708
+      "loss": 0.5930714451914727,
+      "acc": 0.6777920410783055,
+      "macro_f1": 0.4986782771318829,
+      "uar": 0.5026127392423673
     }
   },
   "per_subset_test_metrics": {
     "ravdess": {
-      "samples": 120,
-      "loss": 0.7207656180486083,
-      "acc": 0.6333333333333333,
-      "macro_f1": 0.5895869502680647,
-      "uar": 0.6302083333333334
+      "samples": 104,
+      "loss": 0.453829846273248,
+      "acc": 0.7596153846153846,
+      "macro_f1": 0.7445003452959389,
+      "uar": 0.763888888888889
     },
     "casia": {
       "samples": 300,
-      "loss": 0.8289538304818174,
-      "acc": 0.6266666666666667,
-      "macro_f1": 0.6131714779735953,
-      "uar": 0.6266666666666667
+      "loss": 0.5818850488650302,
+      "acc": 0.6933333333333334,
+      "macro_f1": 0.672648759953928,
+      "uar": 0.6933333333333334
     },
     "esd": {
       "samples": 3500,
-      "loss": 0.48877680052657213,
-      "acc": 0.7502857142857143,
-      "macro_f1": 0.6171594221108043,
-      "uar": 0.6252380952380953
+      "loss": 0.4649256074383323,
+      "acc": 0.7397142857142858,
+      "macro_f1": 0.6123381537427938,
+      "uar": 0.6164285714285714
     },
     "emodb": {
-      "samples": 35,
-      "loss": 1.131021591595241,
-      "acc": 0.5428571428571428,
-      "macro_f1": 0.4749042145593869,
-      "uar": 0.5767195767195766
+      "samples": 31,
+      "loss": 0.7838755884478169,
+      "acc": 0.5161290322580645,
+      "macro_f1": 0.5420979426253261,
+      "uar": 0.692063492063492
     },
     "iemocap": {
       "samples": 697,
-      "loss": 0.6587242199324467,
-      "acc": 0.6929698708751794,
-      "macro_f1": 0.6089309996779803,
-      "uar": 0.5778624522193992
+      "loss": 0.6048669239968446,
+      "acc": 0.6743185078909613,
+      "macro_f1": 0.5888927523252188,
+      "uar": 0.5640904875643894
     }
   },
   "per_class_recall": {
-    "happy": 0.6462513199577613,
-    "angry": 0.8547430830039525,
-    "sad": 0.8365493757094211,
-    "neutral": 0.8756698821007503,
-    "fear": 0.7444444444444445,
-    "surprise": 0.37389100126742714
+    "happy": 0.600844772967265,
+    "angry": 0.8438735177865613,
+    "sad": 0.8217934165720772,
+    "neutral": 0.8849462365591397,
+    "fear": 0.6777777777777778,
+    "surprise": 0.42875647668393785
   },
   "aggregate_mean_std": null,
   "subset_epoch_caps": {
-    "ravdess": 1200,
     "casia": 900,
-    "esd": 2000,
     "emodb": 700,
-    "iemocap": 2200
+    "esd": 2000,
+    "iemocap": 2200,
+    "ravdess": 1200
   },
   "raw_subset_train_samples": {
-    "ravdess": 1200,
+    "ravdess": 1040,
     "casia": 600,
     "esd": 27998,
-    "emodb": 445,
-    "iemocap": 5939
+    "emodb": 373,
+    "iemocap": 5937
   },
   "effective_subset_samples_per_epoch": {
-    "ravdess": 1200,
-    "casia": 900,
+    "ravdess": 1040,
+    "casia": 600,
     "esd": 2000,
-    "emodb": 700,
+    "emodb": 373,
     "iemocap": 2200
   },
   "oversampled_subset_samples_per_epoch": {
     "ravdess": 0,
-    "casia": 300,
+    "casia": 0,
     "esd": 0,
-    "emodb": 255,
+    "emodb": 0,
     "iemocap": 0
   },
-  "raw_train_samples": 36182,
-  "effective_train_samples_per_epoch": 7000,
-  "esd_epoch_cap": 2000,
-  "raw_esd_train_samples": 27998,
-  "effective_esd_samples_per_epoch": 2000,
-  "augmentation_config": {
-    "live_encoder": {
-      "time_mask_max": 24,
-      "freq_mask_max": 12,
-      "noise_std": 0.01
-    },
-    "cached_sequence": {
-      "feature_dropout": 0.1,
-      "time_mask_max": 8,
-      "feature_mask_max": 48,
-      "noise_std": 0.005
-    }
-  },
+  "raw_train_samples": 35948,
+  "effective_train_samples_per_epoch": 6213,
   "checkpoint_filename": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2_seed42.pth",
   "history_filename": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2_seed42_history.npz",
   "summary_filename": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2_seed42_summary.json",
-  "confusion_matrix_filename": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2_seed42_confusion_matrix.png"
+  "confusion_matrix_filename": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2_seed42_confusion_matrix.png",
+  "curve_filename": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2_seed42_curves.png"
 }
