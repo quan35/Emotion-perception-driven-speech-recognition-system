@@ -59,7 +59,7 @@ python preprocessing/audio_preprocess.py
 
 ### 4. 训练步骤
 
-当前仓库仍然保留 notebook 路线，但正式主线已经切换为 script-first。若目标是复现实验主线、生成可比的 `summary.json` / `aggregate.json`，或在后续 `4090` 环境中产出论文结果，应以 `scripts/train_shared.py` 作为执行真值；`notebooks/04_train_shared.ipynb` 更适合作为历史复盘、图表查看与单元格调试入口，而不再作为正式主线训练的首选入口。
+当前仓库仍然保留 notebook 层，但正式主线已经切换为 script-first。若目标是复现实验主线、生成可比的 `summary.json` / `aggregate.json`，或在后续 `4090` 环境中产出论文结果，应以 `scripts/train_shared.py` 作为执行真值；`notebooks/04_train_shared.ipynb` 现在承担结果分析与可视化职责，不再作为正式主线训练入口。
 
 1. 如果训练早期探索模型 `CNN+BiLSTM+Attention`，先提取 Mel 与 MFCC 特征：
 
@@ -114,13 +114,13 @@ bash scripts/train_shared_tmux.sh --session-name shared_dyt_4090 --log-prefix sh
 
 其中 `summary.json` / `aggregate.json` 会额外记录 `data_policy_audit`、`runtime_profile`、`runtime_eval_sampling`、`selected_val_subset_mean_uar`、`test_subset_mean_uar`、`criterion_name`、`criterion_config` 和 `class_weights`，用于严格协议下的结果复核。
 
-3. 如果你需要复查旧 notebook 流程、查看 cell 级日志，或者继续维护历史实验叙事，仍可执行：
+3. 如果你需要在训练完成后做结果复盘、图表查看与多实验对比，可直接打开分析 notebook：
 
 ```bash
-bash scripts/run_notebook_tmux.sh notebooks/04_train_shared.ipynb train_shared_notebook
+jupyter lab notebooks/04_train_shared.ipynb
 ```
 
-不过需要明确的是，这一路线现在属于历史 notebook 执行方式，而不是正式主线训练的推荐入口。执行后生成的 `runs/04_train_shared.latest.ipynb` 更适合追踪 notebook 单元格状态，而正式训练的可比结果应优先来自 `scripts/train_shared.py` 产出的 checkpoint 和 summary。
+该 notebook 只读取已有 `checkpoints/` 产物进行分析与可视化，不再承担“准备数据集 -> 构建模型 -> 训练 -> 测试集评估”的主流程。换言之，正式训练的可比结果应优先来自 `scripts/train_shared.py` 产出的 checkpoint 和 summary，而 notebook 只负责复盘这些已有结果。
 
 4. 如果需要切换共享模型的实验配置，优先修改 `configs/config.yaml` 中的 `shared_model`、`training`、`runtime` 与 `data_policy` 字段。对于论文主流程，建议把变量控制在 `norm=derf/dyt` 这一维上，不再把 `freeze_strategy`、`layernorm` 等兼容项混入默认叙事；这些兼容配置仍受代码支持，但当前仓库不再把它们视为正式主线流程的一部分。
 
@@ -240,12 +240,12 @@ Emotion-perception-driven-speech-recognition-system/
 - `configs/` 统一管理音频参数、训练配置、模型超参数、运行 profile 和权重路径。
 - `scripts/train_shared.py` 是正式主线训练入口，负责数据策略过滤、主辅数据子集划分、训练、评估与实验摘要输出。
 - `scripts/train_shared_tmux.sh` 用于在 `tmux` 中后台执行正式主线训练脚本。
-- `scripts/run_notebook_tmux.sh` 与 `scripts/execute_notebook_live.py` 保留为历史 notebook 后台执行工具。
+- `scripts/run_notebook_tmux.sh` 与 `scripts/execute_notebook_live.py` 保留为历史 notebook 后台执行工具，主要服务于早期探索路线或旧实验复盘。
 - `scripts/evaluate_shared_ui_path.py` 用于按当前 UI 主线路径复核共享模型结果。
 - `models/` 保存早期探索路线与主线路线的核心实现，其中 `whisper_emotion.py` 集中维护 `DyT`、`Derf` 与 checkpoint 兼容逻辑。
 - `preprocessing/` 负责原始音频整理、常规特征提取和 Whisper 训练数据准备。
 - `utils/data_policy.py` 负责 `staged_clean` 标签策略、样本过滤与数据审计。
-- `notebooks/` 保留原始实验 notebook 模板，适合复盘与图表查看，但不再是正式主线训练的执行真值。
+- `notebooks/` 保留历史 notebook 与分析 notebook，其中 `03_train_emotion.ipynb` 仍用于早期探索路线，`04_train_shared.ipynb` 用于主线实验的结果分析与可视化。
 - `checkpoints/` 保存权重、训练历史、混淆矩阵、曲线图与实验摘要。
 - `logs/` 为脚本或 notebook 后台执行时自动生成的日志目录，`runs/` 仅在 notebook 后台执行时生成执行后的 notebook 文件。
 

@@ -1,6 +1,6 @@
 ---
 name: experiment-runner
-description: Use when the user asks to run, resume, improve, optimize, compare, audit, critique, troubleshoot, or summarize experiments in this repository, especially requests such as `实验改进`, `实验优化`, `消融`, `对比实验`, `比较 Derf 和 DyT`, `调整 freeze_strategy / training_mode / norm`, `看哪个 checkpoint 更好`, `是否该切换默认模型`, `分析 summary.json / history.npz`, `解释混淆矩阵`, `复盘一次训练`, `根据本地结果写实验分析`, Whisper + Norm-Free Transformer shared-model runs, notebook executions in notebooks/04_train_shared.ipynb, config changes in configs/config.yaml, or checkpoint promotion.
+description: Use when the user asks to run, resume, improve, optimize, compare, audit, critique, troubleshoot, or summarize experiments in this repository, especially requests such as `实验改进`, `实验优化`, `消融`, `对比实验`, `比较 Derf 和 DyT`, `调整 freeze_strategy / training_mode / norm`, `看哪个 checkpoint 更好`, `是否该切换默认模型`, `分析 summary.json / history.npz`, `解释混淆矩阵`, `复盘一次训练`, `根据本地结果写实验分析`, Whisper + Norm-Free Transformer shared-model runs, script-based training in scripts/train_shared.py, analysis notebook work in notebooks/04_train_shared.ipynb, config changes in configs/config.yaml, or checkpoint promotion.
 ---
 
 # Experiment Runner
@@ -29,20 +29,22 @@ Use this skill for repository-specific experiment execution, comparison, artifac
 
 ## Repository assumptions
 
-- The mainline experiment entry is `notebooks/04_train_shared.ipynb`.
+- The mainline experiment entry is `scripts/train_shared.py`, typically launched through `scripts/train_shared_tmux.sh`.
+- `notebooks/04_train_shared.ipynb` is the shared-model analysis and visualization notebook; it is no longer the training source of truth.
 - `notebooks/03_train_emotion.ipynb` is historical and should only be used when the user explicitly wants the early exploration route.
 - Emotion labels are fixed to `happy`, `angry`, `sad`, `neutral`, `fear`, `surprise`. Do not silently remap labels or alter class count.
 - `data/` may be a symlink or mounted path. Do not assume raw data is tracked in git.
-- Current executable monitoring logic in `notebooks/04_train_shared.ipynb` uses `val_subset_mean_uar -> val_uar -> val_loss` for best-epoch selection. `configs/config.yaml` still exposes `training.best_metric: subset_mean_uar` as a shorthand. When these disagree, treat notebook behavior plus generated artifacts as execution truth and call out the mismatch explicitly.
+- Current executable monitoring logic in `scripts/train_shared.py` uses `val_subset_mean_uar -> val_uar -> val_loss` for best-epoch selection. `configs/config.yaml` still exposes `training.best_metric: subset_mean_uar` as a shorthand. When these disagree, treat script behavior plus generated artifacts as execution truth and call out the mismatch explicitly.
 
 ## Read order
 
 1. Read `AGENTS.md`.
 2. Read `configs/config.yaml`.
-3. If the task is mainline training or comparison, inspect `notebooks/04_train_shared.ipynb`.
-4. If the task executes notebooks, inspect `scripts/run_notebook_tmux.sh`.
-5. If the task is about an existing run, inspect the corresponding `checkpoints/*_summary.json` and `checkpoints/*_history.npz`.
-6. If the task updates a report or paper, keep the repository writing constraints in force. Report files must use complete academic paragraphs rather than bullet lists.
+3. If the task is mainline training or protocol comparison, inspect `scripts/train_shared.py`.
+4. If the task is about artifact review, figure regeneration, or result comparison, inspect `notebooks/04_train_shared.ipynb`.
+5. If the task executes historical notebooks, inspect `scripts/run_notebook_tmux.sh`.
+6. If the task is about an existing run, inspect the corresponding `checkpoints/*_summary.json` and `checkpoints/*_history.npz`.
+7. If the task updates a report or paper, keep the repository writing constraints in force. Report files must use complete academic paragraphs rather than bullet lists.
 
 ## Interoperability
 
@@ -59,14 +61,20 @@ Use this skill as the local-evidence source of truth, then combine it with other
 ### Running a mainline experiment
 
 1. Identify the single primary variable being changed. If the request mixes multiple variables, split the experiment design so attribution remains clear.
-2. Snapshot the config values that matter most: `shared_model.training_mode`, `shared_model.norm`, `shared_model.freeze_strategy`, `training.seed`, `training.seed_sweep`, `training.subset_sampling_mode`, `training.subset_epoch_targets`, `training.subset_epoch_caps`, and `paths.best_shared_model`.
-3. Prefer the existing notebook-first workflow unless the user explicitly asks to script the training entry. If executing the notebook, prefer:
+2. Snapshot the config values that matter most: `shared_model.training_mode`, `shared_model.norm`, `shared_model.freeze_strategy`, `training.seed`, `training.seed_sweep`, `training.subset_sampling_mode`, `training.subset_epoch_targets`, `training.subset_epoch_caps`, `runtime.default_profile`, and `paths.best_shared_model`.
+3. Prefer the script-first workflow for the shared-model mainline. On a formal GPU run, prefer:
 
 ```bash
-bash scripts/run_notebook_tmux.sh notebooks/04_train_shared.ipynb <session_name>
+bash scripts/train_shared_tmux.sh --session-name <session_name> -- --profile cuda_4090_mainline --norm <derf|dyt>
 ```
 
-4. Record the tmux session name, executed notebook path under `runs/`, and log path under `logs/`.
+   On a no-GPU or audit-only machine, prefer:
+
+```bash
+bash scripts/train_shared_tmux.sh --session-name <session_name> -- --profile cpu_preflight --audit-only
+```
+
+4. Record the tmux session name and log path under `logs/`.
 5. After the run, audit the produced artifacts before drawing conclusions.
 
 ### Auditing a completed run
@@ -109,7 +117,7 @@ python .agents/skills/experiment-runner/scripts/audit_shared_experiment.py \
 
 ## Ground-truth policy
 
-- Prefer executable truth over stale prose. In this repository that means current notebook logic, actual generated artifacts, and current config values outrank older narrative descriptions.
+- Prefer executable truth over stale prose. In this repository that means current `scripts/train_shared.py` logic, actual generated artifacts, and current config values outrank older narrative descriptions. The shared analysis notebook can help interpret results, but it is not the execution truth.
 - If documentation and artifacts disagree, do not silently normalize them. Surface the mismatch and explain which source was treated as ground truth.
 
 ## References

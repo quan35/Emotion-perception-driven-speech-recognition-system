@@ -4,11 +4,11 @@ This reference captures the current experiment protocol that the skill should fo
 
 ## Mainline scope
 
-The mainline system is the shared Whisper-based model implemented around `models/whisper_emotion.py`, executed in `notebooks/04_train_shared.ipynb`, and used at inference time through `inference/pipeline.py`. The early `CNN+BiLSTM+Attention` route is retained for historical contrast and should not be treated as the default experimental baseline unless the user explicitly requests it.
+The mainline system is the shared Whisper-based model implemented around `models/whisper_emotion.py`, executed through `scripts/train_shared.py` and typically launched by `scripts/train_shared_tmux.sh`, visualized in `notebooks/04_train_shared.ipynb`, and used at inference time through `inference/pipeline.py`. The early `CNN+BiLSTM+Attention` route is retained for historical contrast and should not be treated as the default experimental baseline unless the user explicitly requests it.
 
 ## Monitoring rule
 
-Current notebook behavior selects the best epoch using the monitor chain `val_subset_mean_uar -> val_uar -> val_loss`. This is stricter than a single-metric monitor and must be preserved when auditing results. If `configs/config.yaml` or older prose mentions only `subset_mean_uar` or `val_uar`, report the discrepancy instead of flattening it.
+Current script behavior in `scripts/train_shared.py` selects the best epoch using the monitor chain `val_subset_mean_uar -> val_uar -> val_loss`. This is stricter than a single-metric monitor and must be preserved when auditing results. If `configs/config.yaml` or older prose mentions only `subset_mean_uar` or `val_uar`, report the discrepancy instead of flattening it.
 
 ## Expected outputs for a completed shared-model run
 
@@ -39,13 +39,19 @@ Use `best_val_*` values only when discussing the shape of the optimization traje
 
 ## Default execution pattern
 
-When the user asks to run the notebook as-is, prefer the existing helper script:
+When the user asks to run the shared-model mainline, prefer the script-first helper:
 
 ```bash
-bash scripts/run_notebook_tmux.sh notebooks/04_train_shared.ipynb train_shared_<tag>
+bash scripts/train_shared_tmux.sh --session-name train_shared_<tag> -- --profile cuda_4090_mainline --norm <derf|dyt>
 ```
 
-This keeps notebook execution, logs, and rerun paths consistent with the current repository workflow.
+If the current machine has no GPU or the user only wants a protocol preflight, prefer:
+
+```bash
+bash scripts/train_shared_tmux.sh --session-name train_shared_audit_<tag> -- --profile cpu_preflight --audit-only
+```
+
+Use `notebooks/04_train_shared.ipynb` after the run for artifact analysis and visualization rather than for executing the training protocol itself.
 
 ## Promotion rule
 
