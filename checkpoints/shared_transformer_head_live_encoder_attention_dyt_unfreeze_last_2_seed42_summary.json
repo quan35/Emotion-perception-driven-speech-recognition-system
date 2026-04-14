@@ -1,0 +1,1126 @@
+{
+  "protocol_version": 2,
+  "num_runs": 1,
+  "experiment_name": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2_seed42",
+  "experiment_stem": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2",
+  "canonical_experiment_stem": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2",
+  "variant": "transformer_head",
+  "training_mode": "live_encoder",
+  "seed": 42,
+  "seed_sweep": [
+    42,
+    52,
+    62
+  ],
+  "included_subsets": [
+    "ravdess",
+    "casia",
+    "esd",
+    "emodb",
+    "iemocap"
+  ],
+  "auxiliary_subsets": [
+    "tess"
+  ],
+  "split_meta": {
+    "included_subsets": [
+      "ravdess",
+      "casia",
+      "esd",
+      "emodb",
+      "iemocap"
+    ],
+    "excluded_subsets": [
+      "tess"
+    ],
+    "total_samples": 45306,
+    "total_groups": 68,
+    "train_samples": 35948,
+    "val_samples": 4726,
+    "test_samples": 4632,
+    "train_groups": 54,
+    "val_groups": 7,
+    "test_groups": 7,
+    "subset_group_counts": {
+      "ravdess": 24,
+      "casia": 4,
+      "esd": 20,
+      "emodb": 10,
+      "iemocap": 10
+    },
+    "subset_sample_counts": {
+      "ravdess": 1248,
+      "casia": 1200,
+      "esd": 34997,
+      "emodb": 448,
+      "iemocap": 7413
+    },
+    "train_subset_group_counts": {
+      "ravdess": 20,
+      "casia": 2,
+      "esd": 16,
+      "emodb": 8,
+      "iemocap": 8
+    },
+    "val_subset_group_counts": {
+      "ravdess": 2,
+      "casia": 1,
+      "esd": 2,
+      "emodb": 1,
+      "iemocap": 1
+    },
+    "test_subset_group_counts": {
+      "ravdess": 2,
+      "casia": 1,
+      "esd": 2,
+      "emodb": 1,
+      "iemocap": 1
+    },
+    "train_subset_sample_counts": {
+      "ravdess": 1040,
+      "casia": 600,
+      "esd": 27998,
+      "emodb": 373,
+      "iemocap": 5937
+    },
+    "val_subset_sample_counts": {
+      "ravdess": 104,
+      "casia": 300,
+      "esd": 3499,
+      "emodb": 44,
+      "iemocap": 779
+    },
+    "test_subset_sample_counts": {
+      "ravdess": 104,
+      "casia": 300,
+      "esd": 3500,
+      "emodb": 31,
+      "iemocap": 697
+    },
+    "train_subset_distribution": {
+      "casia": 600,
+      "emodb": 373,
+      "esd": 27998,
+      "iemocap": 5937,
+      "ravdess": 1040
+    },
+    "val_subset_distribution": {
+      "casia": 300,
+      "emodb": 44,
+      "esd": 3499,
+      "iemocap": 779,
+      "ravdess": 104
+    },
+    "test_subset_distribution": {
+      "casia": 300,
+      "emodb": 31,
+      "esd": 3500,
+      "iemocap": 697,
+      "ravdess": 104
+    },
+    "subset_speakers": {
+      "ravdess": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24"
+      ],
+      "casia": [
+        "ZhaoZuoxiang",
+        "liuchanhg",
+        "wangzhe",
+        "zhaoquanyin"
+      ],
+      "esd": [
+        "0001",
+        "0002",
+        "0003",
+        "0004",
+        "0005",
+        "0006",
+        "0007",
+        "0008",
+        "0009",
+        "0010",
+        "0011",
+        "0012",
+        "0013",
+        "0014",
+        "0015",
+        "0016",
+        "0017",
+        "0018",
+        "0019",
+        "0020"
+      ],
+      "emodb": [
+        "03",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16"
+      ],
+      "iemocap": [
+        "Ses01F",
+        "Ses01M",
+        "Ses02F",
+        "Ses02M",
+        "Ses03F",
+        "Ses03M",
+        "Ses04F",
+        "Ses04M",
+        "Ses05F",
+        "Ses05M"
+      ]
+    },
+    "normalization_warnings": [
+      "TESS speaker alias normalized: OA -> OAF (data/processed/tess/neutral/tess_OA_bite_neutral.wav)"
+    ],
+    "protocol_version": 2,
+    "seed": 42,
+    "seed_sweep": [
+      42,
+      52,
+      62
+    ],
+    "main_subsets": [
+      "ravdess",
+      "casia",
+      "esd",
+      "emodb",
+      "iemocap"
+    ],
+    "auxiliary_subsets": [
+      "tess"
+    ],
+    "dataset_audit": {
+      "ravdess": {
+        "num_groups": 24,
+        "num_samples": 1248,
+        "speaker_ids": [
+          "01",
+          "02",
+          "03",
+          "04",
+          "05",
+          "06",
+          "07",
+          "08",
+          "09",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16",
+          "17",
+          "18",
+          "19",
+          "20",
+          "21",
+          "22",
+          "23",
+          "24"
+        ],
+        "can_three_way_split": true,
+        "required_splits": 3
+      },
+      "casia": {
+        "num_groups": 4,
+        "num_samples": 1200,
+        "speaker_ids": [
+          "ZhaoZuoxiang",
+          "liuchanhg",
+          "wangzhe",
+          "zhaoquanyin"
+        ],
+        "can_three_way_split": true,
+        "required_splits": 3
+      },
+      "tess": {
+        "num_groups": 2,
+        "num_samples": 2200,
+        "speaker_ids": [
+          "OAF",
+          "YAF"
+        ],
+        "can_three_way_split": false,
+        "required_splits": 3
+      },
+      "esd": {
+        "num_groups": 20,
+        "num_samples": 34997,
+        "speaker_ids": [
+          "0001",
+          "0002",
+          "0003",
+          "0004",
+          "0005",
+          "0006",
+          "0007",
+          "0008",
+          "0009",
+          "0010",
+          "0011",
+          "0012",
+          "0013",
+          "0014",
+          "0015",
+          "0016",
+          "0017",
+          "0018",
+          "0019",
+          "0020"
+        ],
+        "can_three_way_split": true,
+        "required_splits": 3
+      },
+      "emodb": {
+        "num_groups": 10,
+        "num_samples": 448,
+        "speaker_ids": [
+          "03",
+          "08",
+          "09",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16"
+        ],
+        "can_three_way_split": true,
+        "required_splits": 3
+      },
+      "iemocap": {
+        "num_groups": 10,
+        "num_samples": 7413,
+        "speaker_ids": [
+          "Ses01F",
+          "Ses01M",
+          "Ses02F",
+          "Ses02M",
+          "Ses03F",
+          "Ses03M",
+          "Ses04F",
+          "Ses04M",
+          "Ses05F",
+          "Ses05M"
+        ],
+        "can_three_way_split": true,
+        "required_splits": 3
+      }
+    },
+    "dataset_normalization_warnings": [
+      "TESS speaker alias normalized: OA -> OAF (data/processed/tess/neutral/tess_OA_bite_neutral.wav)"
+    ],
+    "auxiliary_eval_plan": {
+      "tess": {
+        "subset": "tess",
+        "speaker_ids": [
+          "OAF",
+          "YAF"
+        ],
+        "num_groups": 2,
+        "num_samples": 2200,
+        "folds": [
+          {
+            "fold_index": 1,
+            "train_group_ids": [
+              "YAF"
+            ],
+            "test_group_ids": [
+              "OAF"
+            ],
+            "train_samples": 1000,
+            "test_samples": 1200
+          },
+          {
+            "fold_index": 2,
+            "train_group_ids": [
+              "OAF"
+            ],
+            "test_group_ids": [
+              "YAF"
+            ],
+            "train_samples": 1200,
+            "test_samples": 1000
+          }
+        ],
+        "normalization_warnings": [
+          "TESS speaker alias normalized: OA -> OAF (data/processed/tess/neutral/tess_OA_bite_neutral.wav)"
+        ]
+      }
+    },
+    "data_policy_audit": {
+      "enabled": true,
+      "profile": "staged_clean",
+      "total_input_samples": 48187,
+      "total_kept_samples": 47506,
+      "total_dropped_samples": 681,
+      "per_subset": {
+        "ravdess": {
+          "input_samples": 1440,
+          "kept_samples": 1248,
+          "dropped_samples": 192,
+          "unknown_source_labels": 0,
+          "input_source_labels": {
+            "01": 96,
+            "02": 192,
+            "03": 192,
+            "04": 192,
+            "05": 192,
+            "06": 192,
+            "07": 192,
+            "08": 192
+          },
+          "kept_source_labels": {
+            "01": 96,
+            "02": 192,
+            "03": 192,
+            "04": 192,
+            "05": 192,
+            "06": 192,
+            "08": 192
+          },
+          "dropped_source_labels": {
+            "07": 192
+          },
+          "drop_source_labels_config": [
+            "07"
+          ]
+        },
+        "casia": {
+          "input_samples": 1200,
+          "kept_samples": 1200,
+          "dropped_samples": 0,
+          "unknown_source_labels": 0,
+          "input_source_labels": {
+            "angry": 200,
+            "fear": 200,
+            "happy": 200,
+            "neutral": 200,
+            "sad": 200,
+            "surprise": 200
+          },
+          "kept_source_labels": {
+            "angry": 200,
+            "fear": 200,
+            "happy": 200,
+            "neutral": 200,
+            "sad": 200,
+            "surprise": 200
+          },
+          "dropped_source_labels": {},
+          "drop_source_labels_config": []
+        },
+        "tess": {
+          "input_samples": 2600,
+          "kept_samples": 2200,
+          "dropped_samples": 400,
+          "unknown_source_labels": 0,
+          "input_source_labels": {
+            "angry": 400,
+            "disgust": 400,
+            "fear": 400,
+            "happy": 400,
+            "neutral": 400,
+            "ps": 200,
+            "sad": 400
+          },
+          "kept_source_labels": {
+            "angry": 400,
+            "fear": 400,
+            "happy": 400,
+            "neutral": 400,
+            "ps": 200,
+            "sad": 400
+          },
+          "dropped_source_labels": {
+            "disgust": 400
+          },
+          "drop_source_labels_config": [
+            "disgust"
+          ]
+        },
+        "esd": {
+          "input_samples": 34997,
+          "kept_samples": 34997,
+          "dropped_samples": 0,
+          "unknown_source_labels": 0,
+          "input_source_labels": {
+            "angry": 6998,
+            "happy": 6999,
+            "neutral": 7000,
+            "sad": 7000,
+            "surprise": 7000
+          },
+          "kept_source_labels": {
+            "angry": 6998,
+            "happy": 6999,
+            "neutral": 7000,
+            "sad": 7000,
+            "surprise": 7000
+          },
+          "dropped_source_labels": {},
+          "drop_source_labels_config": []
+        },
+        "emodb": {
+          "input_samples": 535,
+          "kept_samples": 448,
+          "dropped_samples": 87,
+          "unknown_source_labels": 0,
+          "input_source_labels": {
+            "A": 217,
+            "E": 33,
+            "F": 50,
+            "L": 54,
+            "N": 53,
+            "T": 44,
+            "W": 84
+          },
+          "kept_source_labels": {
+            "A": 217,
+            "F": 50,
+            "N": 53,
+            "T": 44,
+            "W": 84
+          },
+          "dropped_source_labels": {
+            "E": 33,
+            "L": 54
+          },
+          "drop_source_labels_config": [
+            "l",
+            "e"
+          ]
+        },
+        "iemocap": {
+          "input_samples": 7415,
+          "kept_samples": 7413,
+          "dropped_samples": 2,
+          "unknown_source_labels": 0,
+          "input_source_labels": {
+            "ang": 1078,
+            "dis": 2,
+            "exc": 1024,
+            "fea": 39,
+            "fru": 1833,
+            "hap": 595,
+            "neu": 1676,
+            "sad": 1082,
+            "sur": 86
+          },
+          "kept_source_labels": {
+            "ang": 1078,
+            "exc": 1024,
+            "fea": 39,
+            "fru": 1833,
+            "hap": 595,
+            "neu": 1676,
+            "sad": 1082,
+            "sur": 86
+          },
+          "dropped_source_labels": {
+            "dis": 2
+          },
+          "drop_source_labels_config": [
+            "dis"
+          ]
+        }
+      }
+    }
+  },
+  "dataset_audit": {
+    "ravdess": {
+      "num_groups": 24,
+      "num_samples": 1248,
+      "speaker_ids": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24"
+      ],
+      "can_three_way_split": true,
+      "required_splits": 3
+    },
+    "casia": {
+      "num_groups": 4,
+      "num_samples": 1200,
+      "speaker_ids": [
+        "ZhaoZuoxiang",
+        "liuchanhg",
+        "wangzhe",
+        "zhaoquanyin"
+      ],
+      "can_three_way_split": true,
+      "required_splits": 3
+    },
+    "tess": {
+      "num_groups": 2,
+      "num_samples": 2200,
+      "speaker_ids": [
+        "OAF",
+        "YAF"
+      ],
+      "can_three_way_split": false,
+      "required_splits": 3
+    },
+    "esd": {
+      "num_groups": 20,
+      "num_samples": 34997,
+      "speaker_ids": [
+        "0001",
+        "0002",
+        "0003",
+        "0004",
+        "0005",
+        "0006",
+        "0007",
+        "0008",
+        "0009",
+        "0010",
+        "0011",
+        "0012",
+        "0013",
+        "0014",
+        "0015",
+        "0016",
+        "0017",
+        "0018",
+        "0019",
+        "0020"
+      ],
+      "can_three_way_split": true,
+      "required_splits": 3
+    },
+    "emodb": {
+      "num_groups": 10,
+      "num_samples": 448,
+      "speaker_ids": [
+        "03",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16"
+      ],
+      "can_three_way_split": true,
+      "required_splits": 3
+    },
+    "iemocap": {
+      "num_groups": 10,
+      "num_samples": 7413,
+      "speaker_ids": [
+        "Ses01F",
+        "Ses01M",
+        "Ses02F",
+        "Ses02M",
+        "Ses03F",
+        "Ses03M",
+        "Ses04F",
+        "Ses04M",
+        "Ses05F",
+        "Ses05M"
+      ],
+      "can_three_way_split": true,
+      "required_splits": 3
+    }
+  },
+  "dataset_normalization_warnings": [
+    "TESS speaker alias normalized: OA -> OAF (data/processed/tess/neutral/tess_OA_bite_neutral.wav)"
+  ],
+  "data_policy_audit": {
+    "enabled": true,
+    "profile": "staged_clean",
+    "total_input_samples": 48187,
+    "total_kept_samples": 47506,
+    "total_dropped_samples": 681,
+    "per_subset": {
+      "ravdess": {
+        "input_samples": 1440,
+        "kept_samples": 1248,
+        "dropped_samples": 192,
+        "unknown_source_labels": 0,
+        "input_source_labels": {
+          "01": 96,
+          "02": 192,
+          "03": 192,
+          "04": 192,
+          "05": 192,
+          "06": 192,
+          "07": 192,
+          "08": 192
+        },
+        "kept_source_labels": {
+          "01": 96,
+          "02": 192,
+          "03": 192,
+          "04": 192,
+          "05": 192,
+          "06": 192,
+          "08": 192
+        },
+        "dropped_source_labels": {
+          "07": 192
+        },
+        "drop_source_labels_config": [
+          "07"
+        ]
+      },
+      "casia": {
+        "input_samples": 1200,
+        "kept_samples": 1200,
+        "dropped_samples": 0,
+        "unknown_source_labels": 0,
+        "input_source_labels": {
+          "angry": 200,
+          "fear": 200,
+          "happy": 200,
+          "neutral": 200,
+          "sad": 200,
+          "surprise": 200
+        },
+        "kept_source_labels": {
+          "angry": 200,
+          "fear": 200,
+          "happy": 200,
+          "neutral": 200,
+          "sad": 200,
+          "surprise": 200
+        },
+        "dropped_source_labels": {},
+        "drop_source_labels_config": []
+      },
+      "tess": {
+        "input_samples": 2600,
+        "kept_samples": 2200,
+        "dropped_samples": 400,
+        "unknown_source_labels": 0,
+        "input_source_labels": {
+          "angry": 400,
+          "disgust": 400,
+          "fear": 400,
+          "happy": 400,
+          "neutral": 400,
+          "ps": 200,
+          "sad": 400
+        },
+        "kept_source_labels": {
+          "angry": 400,
+          "fear": 400,
+          "happy": 400,
+          "neutral": 400,
+          "ps": 200,
+          "sad": 400
+        },
+        "dropped_source_labels": {
+          "disgust": 400
+        },
+        "drop_source_labels_config": [
+          "disgust"
+        ]
+      },
+      "esd": {
+        "input_samples": 34997,
+        "kept_samples": 34997,
+        "dropped_samples": 0,
+        "unknown_source_labels": 0,
+        "input_source_labels": {
+          "angry": 6998,
+          "happy": 6999,
+          "neutral": 7000,
+          "sad": 7000,
+          "surprise": 7000
+        },
+        "kept_source_labels": {
+          "angry": 6998,
+          "happy": 6999,
+          "neutral": 7000,
+          "sad": 7000,
+          "surprise": 7000
+        },
+        "dropped_source_labels": {},
+        "drop_source_labels_config": []
+      },
+      "emodb": {
+        "input_samples": 535,
+        "kept_samples": 448,
+        "dropped_samples": 87,
+        "unknown_source_labels": 0,
+        "input_source_labels": {
+          "A": 217,
+          "E": 33,
+          "F": 50,
+          "L": 54,
+          "N": 53,
+          "T": 44,
+          "W": 84
+        },
+        "kept_source_labels": {
+          "A": 217,
+          "F": 50,
+          "N": 53,
+          "T": 44,
+          "W": 84
+        },
+        "dropped_source_labels": {
+          "E": 33,
+          "L": 54
+        },
+        "drop_source_labels_config": [
+          "l",
+          "e"
+        ]
+      },
+      "iemocap": {
+        "input_samples": 7415,
+        "kept_samples": 7413,
+        "dropped_samples": 2,
+        "unknown_source_labels": 0,
+        "input_source_labels": {
+          "ang": 1078,
+          "dis": 2,
+          "exc": 1024,
+          "fea": 39,
+          "fru": 1833,
+          "hap": 595,
+          "neu": 1676,
+          "sad": 1082,
+          "sur": 86
+        },
+        "kept_source_labels": {
+          "ang": 1078,
+          "exc": 1024,
+          "fea": 39,
+          "fru": 1833,
+          "hap": 595,
+          "neu": 1676,
+          "sad": 1082,
+          "sur": 86
+        },
+        "dropped_source_labels": {
+          "dis": 2
+        },
+        "drop_source_labels_config": [
+          "dis"
+        ]
+      }
+    }
+  },
+  "auxiliary_eval_plan": {
+    "tess": {
+      "subset": "tess",
+      "speaker_ids": [
+        "OAF",
+        "YAF"
+      ],
+      "num_groups": 2,
+      "num_samples": 2200,
+      "folds": [
+        {
+          "fold_index": 1,
+          "train_group_ids": [
+            "YAF"
+          ],
+          "test_group_ids": [
+            "OAF"
+          ],
+          "train_samples": 1000,
+          "test_samples": 1200
+        },
+        {
+          "fold_index": 2,
+          "train_group_ids": [
+            "OAF"
+          ],
+          "test_group_ids": [
+            "YAF"
+          ],
+          "train_samples": 1200,
+          "test_samples": 1000
+        }
+      ],
+      "normalization_warnings": [
+        "TESS speaker alias normalized: OA -> OAF (data/processed/tess/neutral/tess_OA_bite_neutral.wav)"
+      ]
+    }
+  },
+  "runtime_profile": {
+    "profile": "cuda_4090_mainline",
+    "device": "cuda",
+    "smoke_enabled": false,
+    "smoke_target_per_subset": null,
+    "configured_whisper_size": "small",
+    "effective_whisper_size": "small"
+  },
+  "runtime_eval_sampling": {
+    "val": {
+      "applied": false,
+      "limit_per_subset": null,
+      "raw_subset_counts": {
+        "ravdess": 104,
+        "casia": 300,
+        "esd": 3499,
+        "emodb": 44,
+        "iemocap": 779
+      },
+      "effective_subset_counts": {
+        "ravdess": 104,
+        "casia": 300,
+        "esd": 3499,
+        "emodb": 44,
+        "iemocap": 779
+      }
+    },
+    "test": {
+      "applied": false,
+      "limit_per_subset": null,
+      "raw_subset_counts": {
+        "ravdess": 104,
+        "casia": 300,
+        "esd": 3500,
+        "emodb": 31,
+        "iemocap": 697
+      },
+      "effective_subset_counts": {
+        "ravdess": 104,
+        "casia": 300,
+        "esd": 3500,
+        "emodb": 31,
+        "iemocap": 697
+      }
+    }
+  },
+  "norm": "dyt",
+  "pooling": "attention",
+  "freeze_strategy": "unfreeze_last_2",
+  "criterion_name": "focal_loss",
+  "criterion_config": {
+    "gamma": 1.5,
+    "label_smoothing": 0.02,
+    "alpha": [
+      0.7490612864494324,
+      0.5348129868507385,
+      0.8536238670349121,
+      0.6791309118270874,
+      1.9184931516647339,
+      1.2648779153823853
+    ],
+    "weighted": true
+  },
+  "class_weights": {
+    "happy": 0.7490612864494324,
+    "angry": 0.5348129868507385,
+    "sad": 0.8536238670349121,
+    "neutral": 0.6791309118270874,
+    "fear": 1.9184931516647339,
+    "surprise": 1.2648779153823853
+  },
+  "virtual_train_class_counts": {
+    "happy": 1158.3367928191124,
+    "angry": 1622.3713220426257,
+    "sad": 1016.4491562554523,
+    "neutral": 1277.611190953111,
+    "fear": 452.26393801583293,
+    "surprise": 685.9675999138657
+  },
+  "subset_sampling_mode": "balanced_class_aware",
+  "subset_sampling_with_replacement": false,
+  "subset_class_balance_power": 0.5,
+  "subset_epoch_targets": {
+    "ravdess": 1040,
+    "casia": 600,
+    "esd": 2000,
+    "emodb": 373,
+    "iemocap": 2200
+  },
+  "epochs_ran": 33,
+  "best_metric": "val_subset_mean_uar",
+  "best_epoch": 25,
+  "selected_val_acc": 0.7680914092255607,
+  "selected_val_macro_f1": 0.7199055998606537,
+  "selected_val_uar": 0.7174434308278995,
+  "selected_val_subset_mean_uar": 0.6722902772578337,
+  "selected_val_loss": 0.3821956879761617,
+  "best_val_loss": 0.3365798719271456,
+  "best_val_acc": 0.7801523487092679,
+  "best_val_macro_f1": 0.7260920316727607,
+  "best_val_uar": 0.7273189022108267,
+  "best_val_subset_mean_uar": 0.6722902772578337,
+  "val_subset_mean_uar": 0.6722902772578337,
+  "test_acc": 0.7260362694300518,
+  "macro_f1": 0.7025000885079757,
+  "weighted_f1": 0.7208273301622331,
+  "uar": 0.7098413607593067,
+  "test_subset_mean_uar": 0.6660085737033541,
+  "per_subset_val_metrics": {
+    "ravdess": {
+      "samples": 104,
+      "loss": 0.4948376038899788,
+      "acc": 0.7692307692307693,
+      "macro_f1": 0.7735198373159203,
+      "uar": 0.7708333333333334
+    },
+    "casia": {
+      "samples": 300,
+      "loss": 0.8365059812553227,
+      "acc": 0.6366666666666667,
+      "macro_f1": 0.6166140810409949,
+      "uar": 0.6366666666666666
+    },
+    "esd": {
+      "samples": 3499,
+      "loss": 0.2914466630275116,
+      "acc": 0.8013718205201487,
+      "macro_f1": 0.8064403303553538,
+      "uar": 0.8013386470468016
+    },
+    "emodb": {
+      "samples": 44,
+      "loss": 0.6814053329554471,
+      "acc": 0.6136363636363636,
+      "macro_f1": 0.6425332562174668,
+      "uar": 0.65
+    },
+    "iemocap": {
+      "samples": 779,
+      "loss": 0.5929427232607645,
+      "acc": 0.6777920410783055,
+      "macro_f1": 0.4986782771318829,
+      "uar": 0.5026127392423673
+    }
+  },
+  "per_subset_test_metrics": {
+    "ravdess": {
+      "samples": 104,
+      "loss": 0.45373237498391134,
+      "acc": 0.7596153846153846,
+      "macro_f1": 0.7445003452959389,
+      "uar": 0.763888888888889
+    },
+    "casia": {
+      "samples": 300,
+      "loss": 0.5814197398163379,
+      "acc": 0.6933333333333334,
+      "macro_f1": 0.672648759953928,
+      "uar": 0.6933333333333334
+    },
+    "esd": {
+      "samples": 3500,
+      "loss": 0.46489701682808143,
+      "acc": 0.74,
+      "macro_f1": 0.6125593392071779,
+      "uar": 0.6166666666666667
+    },
+    "emodb": {
+      "samples": 31,
+      "loss": 0.7837745470385398,
+      "acc": 0.5161290322580645,
+      "macro_f1": 0.5420979426253261,
+      "uar": 0.692063492063492
+    },
+    "iemocap": {
+      "samples": 697,
+      "loss": 0.6048092981493114,
+      "acc": 0.6743185078909613,
+      "macro_f1": 0.5888927523252188,
+      "uar": 0.5640904875643894
+    }
+  },
+  "per_class_recall": {
+    "happy": 0.6019007391763463,
+    "angry": 0.8438735177865613,
+    "sad": 0.8217934165720772,
+    "neutral": 0.8849462365591397,
+    "fear": 0.6777777777777778,
+    "surprise": 0.42875647668393785
+  },
+  "aggregate_mean_std": null,
+  "subset_epoch_caps": {
+    "casia": 900,
+    "emodb": 700,
+    "esd": 2000,
+    "iemocap": 2200,
+    "ravdess": 1200
+  },
+  "raw_subset_train_samples": {
+    "ravdess": 1040,
+    "casia": 600,
+    "esd": 27998,
+    "emodb": 373,
+    "iemocap": 5937
+  },
+  "effective_subset_samples_per_epoch": {
+    "ravdess": 1040,
+    "casia": 600,
+    "esd": 2000,
+    "emodb": 373,
+    "iemocap": 2200
+  },
+  "oversampled_subset_samples_per_epoch": {
+    "ravdess": 0,
+    "casia": 0,
+    "esd": 0,
+    "emodb": 0,
+    "iemocap": 0
+  },
+  "raw_train_samples": 35948,
+  "effective_train_samples_per_epoch": 6213,
+  "checkpoint_filename": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2_seed42.pth",
+  "history_filename": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2_seed42_history.npz",
+  "summary_filename": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2_seed42_summary.json",
+  "confusion_matrix_filename": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2_seed42_confusion_matrix.png",
+  "curve_filename": "shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2_seed42_curves.png"
+}

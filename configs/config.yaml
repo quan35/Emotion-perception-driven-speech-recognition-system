@@ -156,10 +156,8 @@ paths:
   checkpoints: "checkpoints"
   best_emotion_model: "checkpoints/best_emotion.pth"
   best_shared_model: "checkpoints/shared_transformer_head_live_encoder_attention_derf_unfreeze_last_2_seed42.pth"
-  # "checkpoints/shared_transformer_head_live_encoder_attention_derf_freeze_all.pth"
-  # "checkpoints/shared_transformer_head_live_encoder_attention_dyt_freeze_all.pth"
-  # "checkpoints/shared_transformer_head_live_encoder_attention_layernorm_freeze_all.pth"
-  # "checkpoints/shared_transformer_head_live_encoder_attention_derf_unfreeze_last_2.pth"
+  # "checkpoints/shared_transformer_head_live_encoder_attention_derf_unfreeze_last_2_seed42.pth"
+  # "checkpoints/shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2_seed42.pth"
 
 data_policy:
   enabled: true

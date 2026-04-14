@@ -30,11 +30,11 @@ model:
 
 shared_model:
   variant: "transformer_head"
-  checkpoint_format: 2
+  checkpoint_format: 3
   training_mode: "live_encoder" # "live_encoder" "cached_sequence"
   pooling: "attention"
-  norm: "derf" # "derf" "dyt" "layernorm"
-  freeze_strategy: "unfreeze_last_4" # "freeze_all" "unfreeze_last_2" "unfreeze_last_4"
+  norm: "derf" # 主线默认候选；论文关键对比为 "derf" 与 "dyt"
+  freeze_strategy: "unfreeze_last_2" # 主线默认解冻最后两层；兼容 "freeze_all" / "unfreeze_last_4"
   head_layers: 2
   head_hidden_dim: 768
   num_heads: 8
@@ -48,6 +48,11 @@ shared_model:
   cached_sequence_attention_pool_hidden: 128
   legacy_hidden_dims: [256, 64]
   cache_feature_dtype: "float16"
+  norm_alpha_init_value: 0.5
+  derf_shift_init_value: 0.0
+
+legacy:
+  enabled: false
 
 training:
   batch_size: 256
@@ -80,7 +85,7 @@ training:
   auxiliary_subsets: ["tess"]
   seed_sweep: [42, 52, 62]
   subset_sampling_mode: "balanced_class_aware"
-  subset_sampling_with_replacement: true
+  subset_sampling_with_replacement: false
   subset_class_balance_power: 0.5
   subset_epoch_targets:
     casia: 900
@@ -125,17 +130,47 @@ training:
   focal_loss: false
   focal_gamma: 2.0
 
+runtime:
+  default_profile: "auto"
+  cpu_preflight:
+    max_epochs: 1
+    smoke_target_per_subset: 32
+    whisper_size_override: "tiny"
+    whisper_feature_batch_size: 1
+    live_encoder_batch_size: 1
+    live_encoder_eval_batch_size: 1
+    whisper_feature_num_workers: 0
+    live_encoder_num_workers: 0
+    live_encoder_eval_num_workers: 0
+    live_encoder_persistent_workers: false
+    live_encoder_eval_persistent_workers: false
+  cuda_4090_mainline:
+    whisper_feature_batch_size: 64
+    live_encoder_batch_size: 16
+    live_encoder_eval_batch_size: 16
+
 paths:
   raw_data: "data/raw"
   processed_data: "data/processed"
   features: "data/features"
   checkpoints: "checkpoints"
   best_emotion_model: "checkpoints/best_emotion.pth"
-  best_shared_model: "checkpoints/shared_transformer_head_live_encoder_attention_derf_unfreeze_last_2.pth"
-  # "checkpoints/shared_transformer_head_live_encoder_attention_derf_freeze_all.pth"
-  # "checkpoints/shared_transformer_head_live_encoder_attention_dyt_freeze_all.pth"
-  # "checkpoints/shared_transformer_head_live_encoder_attention_layernorm_freeze_all.pth"
-  # "checkpoints/shared_transformer_head_live_encoder_attention_derf_unfreeze_last_2.pth"
+  best_shared_model: "checkpoints/shared_transformer_head_live_encoder_attention_derf_unfreeze_last_2_seed42.pth"
+  # "checkpoints/shared_transformer_head_live_encoder_attention_derf_unfreeze_last_2_seed42.pth"
+  # "checkpoints/shared_transformer_head_live_encoder_attention_dyt_unfreeze_last_2_seed42.pth"
+
+data_policy:
+  enabled: true
+  profile: "staged_clean"
+  datasets:
+    ravdess:
+      drop_source_labels: ["07"]
+    tess:
+      drop_source_labels: ["disgust"]
+    emodb:
+      drop_source_labels: ["L", "E"]
+    iemocap:
+      drop_source_labels: ["dis"]
 
 datasets:
   ravdess:
@@ -146,7 +181,7 @@ datasets:
       "04": "sad"
       "05": "angry"
       "06": "fear"
-      "07": "surprise" # disgust -> surprise (remap)
+      "07": "surprise" # disgust 会在 staged-clean policy 中丢弃
       "08": "surprise"
   casia:
     emotions:
@@ -159,7 +194,7 @@ datasets:
   tess:
     emotions:
       "angry": "angry"
-      "disgust": "surprise"
+      "disgust": "surprise" # disgust 会在 staged-clean policy 中丢弃
       "fear": "fear"
       "happy": "happy"
       "neutral": "neutral"
@@ -180,8 +215,8 @@ datasets:
       "F": "happy" # Freude (joy)
       "T": "sad" # Trauer (sadness)
       "N": "neutral" # Neutral
-      "L": "neutral" # Langeweile (boredom) -> neutral
-      "E": "surprise" # Ekel (disgust) -> surprise (align with existing remap)
+      "L": "neutral" # boredom 会在 staged-clean policy 中丢弃
+      "E": "surprise" # disgust 会在 staged-clean policy 中丢弃
   iemocap:
     emotions:
       "ang": "angry" # anger
@@ -192,4 +227,4 @@ datasets:
       "fru": "angry" # frustration -> angry
       "fea": "fear" # fear
       "sur": "surprise" # surprise
-      "dis": "surprise" # disgust -> surprise
+      "dis": "surprise" # disgust 会在 staged-clean policy 中丢弃
