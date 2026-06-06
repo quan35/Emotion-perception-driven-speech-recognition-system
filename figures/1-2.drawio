@@ -1,0 +1,157 @@
+<mxfile host="app.diagrams.net" agent="Claude">
+  <diagram name="图1-2 传统SER技术演进" id="fig1-2">
+    <mxGraphModel dx="1323" dy="796" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=15;fontStyle=1" value="传统SER技术演进路线图" vertex="1">
+          <mxGeometry height="40" width="600" x="348.5" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="phase1-bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;opacity=40;fontSize=15;" value="" vertex="1">
+          <mxGeometry height="230" width="310" x="40" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="phase1-label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=15;fontStyle=1;fontColor=#6C8EBF" value="第一阶段：手工特征时代" vertex="1">
+          <mxGeometry height="25" width="300" x="50" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="f-mfcc" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=15;" value="MFCC" vertex="1">
+          <mxGeometry height="40" width="80" x="60" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="f-pitch" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=15;" value="基频轨迹" vertex="1">
+          <mxGeometry height="40" width="80" x="155" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="f-energy" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=15;" value="能量包络" vertex="1">
+          <mxGeometry height="40" width="80" x="250" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="f-rhythm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=15;" value="韵律统计量" vertex="1">
+          <mxGeometry height="40" width="80" x="60" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="f-formant" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=15;" value="共振峰" vertex="1">
+          <mxGeometry height="40" width="80" x="155" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="f-zcr" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=15;" value="过零率" vertex="1">
+          <mxGeometry height="40" width="80" x="250" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="tool" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=15;fontStyle=1" value="openSMILE 特征提取工具" vertex="1">
+          <mxGeometry height="40" width="200" x="100" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-feat" edge="1" parent="1" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6C8EBF;fontSize=15;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="230" y="220" as="sourcePoint" />
+            <mxPoint x="230" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr-p1p2" edge="1" parent="1" source="phase1-bg" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#333333;fontSize=15;exitX=1.003;exitY=0.558;exitDx=0;exitDy=0;exitPerimeter=0;entryX=-0.008;entryY=0.565;entryDx=0;entryDy=0;entryPerimeter=0;" target="phase2-bg" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="420" y="200" as="sourcePoint" />
+            <mxPoint x="490" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr-p1p2-label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=15;fontStyle=2" value="深度学习兴起" vertex="1">
+          <mxGeometry height="25" width="100" x="350" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="phase2-bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;opacity=40;fontSize=15;" value="" vertex="1">
+          <mxGeometry height="230" width="380" x="453" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="phase2-label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=15;fontStyle=1;fontColor=#9673A6" value="第二阶段：统计机器学习时代" vertex="1">
+          <mxGeometry height="25" width="360" x="463" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ml-svm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=15;" value="SVM" vertex="1">
+          <mxGeometry height="45" width="100" x="473" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="ml-gmm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=15;" value="GMM" vertex="1">
+          <mxGeometry height="45" width="100" x="593" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="ml-hmm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=15;" value="HMM" vertex="1">
+          <mxGeometry height="45" width="100" x="713" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="ml-knn" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=15;" value="KNN" vertex="1">
+          <mxGeometry height="45" width="100" x="473" y="195" as="geometry" />
+        </mxCell>
+        <mxCell id="ml-rf" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=15;" value="随机森林" vertex="1">
+          <mxGeometry height="45" width="100" x="593" y="195" as="geometry" />
+        </mxCell>
+        <mxCell id="ml-mlp" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=15;" value="MLP" vertex="1">
+          <mxGeometry height="45" width="100" x="713" y="195" as="geometry" />
+        </mxCell>
+        <mxCell id="phase2-note" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=15;fontStyle=2;fontColor=#9673A6" value="依赖手工特征 + 浅层分类器" vertex="1">
+          <mxGeometry height="25" width="250" x="518" y="247.5" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-p2p3" edge="1" parent="1" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#333333;fontSize=15;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="833" y="199.5" as="sourcePoint" />
+            <mxPoint x="930" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr-p2p3-label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=15;fontStyle=2" value="端到端学习" vertex="1">
+          <mxGeometry height="25" width="80" x="840" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="phase3-bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;opacity=40;fontSize=15;" value="" vertex="1">
+          <mxGeometry height="230" width="330" x="931" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="phase3-label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=15;fontStyle=1;fontColor=#82B366" value="第三阶段：深度学习时代" vertex="1">
+          <mxGeometry height="25" width="380" x="906" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="dl-cnn" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=15;" value="CNN" vertex="1">
+          <mxGeometry height="40" width="85" x="951" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="dl-lstm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=15;" value="LSTM/BiLSTM" vertex="1">
+          <mxGeometry height="40" width="95" x="1051" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="dl-attn" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=15;" value="Attention" vertex="1">
+          <mxGeometry height="40" width="85" x="1161" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="dl-cnnlstm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=15;" value="CNN+LSTM" vertex="1">
+          <mxGeometry height="40" width="85" x="951" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="dl-se" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=15;" value="SE-Net" vertex="1">
+          <mxGeometry height="40" width="95" x="1051" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="dl-e2e" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=15;" value="端到端SER" vertex="1">
+          <mxGeometry height="40" width="85" x="1161" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="phase3-note" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=15;fontStyle=2;fontColor=#82B366" value="自动学习层次化判别特征" vertex="1">
+          <mxGeometry height="25" width="250" x="971" y="247.5" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-big-down1" edge="1" parent="1" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#333333;fontSize=15;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="641" y="302" as="sourcePoint" />
+            <mxPoint x="641" y="362" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr-big-label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=15;fontStyle=2" value="预训练范式转移" vertex="1">
+          <mxGeometry height="25" width="120" x="500" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="phase4-bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=40;fontSize=15;" value="" vertex="1">
+          <mxGeometry height="150" width="909" x="188.5" y="362" as="geometry" />
+        </mxCell>
+        <mxCell id="phase4-label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=15;fontStyle=1;fontColor=#D6B656" value="第四阶段：预训练 + Transformer 时代" vertex="1">
+          <mxGeometry height="25" width="600" x="348.5" y="372" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-w2v2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=15;" value="wav2vec 2.0" vertex="1">
+          <mxGeometry height="40" width="120" x="208.5" y="417" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-hubert" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=15;" value="HuBERT" vertex="1">
+          <mxGeometry height="40" width="120" x="358.5" y="417" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-whisper" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=15;" value="Whisper" vertex="1">
+          <mxGeometry height="40" width="120" x="508.5" y="417" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-wavlm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=15;" value="WavLM" vertex="1">
+          <mxGeometry height="40" width="120" x="658.5" y="417" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-transformer" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=15;" value="Transformer" vertex="1">
+          <mxGeometry height="40" width="120" x="808.5" y="417" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-dytderf" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=15;" value="DyT / Derf" vertex="1">
+          <mxGeometry height="40" width="120" x="958.5" y="417" as="geometry" />
+        </mxCell>
+        <mxCell id="phase4-note" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=15;fontStyle=2;fontColor=#D6B656" value="自监督预训练 → 下游微调；无归一化Transformer → 情感任务头" vertex="1">
+          <mxGeometry height="25" width="500" x="398.5" y="472" as="geometry" />
+        </mxCell>
+        <mxCell id="challenge" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=15;fontStyle=1;align=center" value="⚠ 持续挑战：跨语料泛化 ｜ 情感标注不确定性 ｜ 高唤醒情感混淆 ｜ 多语料标签不统一" vertex="1">
+          <mxGeometry height="40" width="910" x="190" y="532" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

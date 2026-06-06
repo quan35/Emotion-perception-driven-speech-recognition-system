@@ -1,0 +1,162 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="is73nH4cZpi8mB8irBRk" name="第 1 页">
+    <mxGraphModel dx="975" dy="586" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="asr_side" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#333333;strokeColor=none;fontSize=15;" value="&lt;font color=&quot;#ffffff&quot;&gt;&lt;b&gt;仅&lt;br&gt;ASR&lt;br&gt;输出&lt;/b&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="240" width="80" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="th1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" value="&lt;b&gt;用户语句&lt;/b&gt;" vertex="1">
+          <mxGeometry height="30" width="120" x="160" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="th3" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" value="&lt;b&gt;系统识别（仅基于文本）&lt;/b&gt;" vertex="1">
+          <mxGeometry height="30" width="160" x="420" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="th4" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" value="&lt;b&gt;系统响应&lt;/b&gt;" vertex="1">
+          <mxGeometry height="30" width="140" x="640" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="r1_sys" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f2f2f2;strokeColor=#b3b3b3;fontSize=15;" value="系统识别：&lt;br&gt;&lt;b&gt;攻击&lt;/b&gt;" vertex="1">
+          <mxGeometry height="50" width="120" x="440" y="65" as="geometry" />
+        </mxCell>
+        <mxCell id="r1_res" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;fontSize=15;" value="警告用户&lt;br&gt;注意言辞" vertex="1">
+          <mxGeometry height="50" width="130" x="640" y="65" as="geometry" />
+        </mxCell>
+        <mxCell id="r1_x" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" value="&lt;b&gt;&lt;font color=&quot;#cc0000&quot;&gt;X&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#cc0000&quot;&gt;理解偏差&lt;br&gt;意图误判&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="70" x="790" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="NH8x7iiGyTsd9m5A_-oz-2" edge="1" parent="1" source="r2_p" style="rounded=0;hachureGap=4;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="r2_sys">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="NH8x7iiGyTsd9m5A_-oz-5" edge="1" parent="1" source="r2_p" style="edgeStyle=orthogonalEdgeStyle;rounded=0;hachureGap=4;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="r1_sys">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="90" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="NH8x7iiGyTsd9m5A_-oz-6" edge="1" parent="1" source="r2_p" style="edgeStyle=orthogonalEdgeStyle;rounded=0;hachureGap=4;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="r3_sys">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r2_p" parent="1" style="shape=speech;whiteSpace=wrap;html=1;strokeColor=#b3b3b3;fillColor=#ffffff;verticalAlign=middle;align=center;fontSize=15;" value="你做得可真好啊" vertex="1">
+          <mxGeometry height="50" width="130" x="150" y="135" as="geometry" />
+        </mxCell>
+        <mxCell id="r2_sys" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f2f2f2;strokeColor=#b3b3b3;fontSize=15;" value="系统识别：&lt;br&gt;&lt;b&gt;抱怨&lt;/b&gt;" vertex="1">
+          <mxGeometry height="50" width="120" x="440" y="135" as="geometry" />
+        </mxCell>
+        <mxCell id="r2_res" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;fontSize=15;" value="建议用户&lt;br&gt;放松心情" vertex="1">
+          <mxGeometry height="50" width="130" x="640" y="135" as="geometry" />
+        </mxCell>
+        <mxCell id="r2_x" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" value="&lt;b&gt;&lt;font color=&quot;#cc0000&quot;&gt;X&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#cc0000&quot;&gt;理解偏差&lt;br&gt;意图误判&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="70" x="790" y="125" as="geometry" />
+        </mxCell>
+        <mxCell id="r3_sys" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f2f2f2;strokeColor=#b3b3b3;fontSize=15;" value="系统识别：&lt;br&gt;&lt;b&gt;字面夸奖&lt;/b&gt;" vertex="1">
+          <mxGeometry height="50" width="120" x="440" y="205" as="geometry" />
+        </mxCell>
+        <mxCell id="r3_res" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;fontSize=15;" value="谢谢您的&lt;br&gt;肯定" vertex="1">
+          <mxGeometry height="50" width="130" x="640" y="205" as="geometry" />
+        </mxCell>
+        <mxCell id="r3_x" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" value="&lt;b&gt;&lt;font color=&quot;#cc0000&quot;&gt;X&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#cc0000&quot;&gt;理解偏差&lt;br&gt;意图误判&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="70" x="790" y="195" as="geometry" />
+        </mxCell>
+        <mxCell id="l1_3" edge="1" parent="1" source="r1_sys" style="fontSize=15;" target="r1_res">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l2_3" edge="1" parent="1" source="r2_sys" style="fontSize=15;" target="r2_res">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_3" edge="1" parent="1" source="r3_sys" style="fontSize=15;" target="r3_res">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dash_line" edge="1" parent="1" style="endArrow=none;html=1;dashed=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ser_side" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=none;fontSize=15;" value="&lt;font color=&quot;#ffffff&quot;&gt;&lt;b&gt;ASR+&lt;br&gt;SER&lt;br&gt;协同输出&lt;/b&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="250" width="80" x="40" y="316" as="geometry" />
+        </mxCell>
+        <mxCell id="bth1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" value="&lt;b&gt;用户语句&lt;/b&gt;" vertex="1">
+          <mxGeometry height="30" width="120" x="160" y="296" as="geometry" />
+        </mxCell>
+        <mxCell id="bth2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" value="&lt;b&gt;情绪识别&lt;br&gt;（来自SER）&lt;/b&gt;" vertex="1">
+          <mxGeometry height="40" width="110" x="300" y="291" as="geometry" />
+        </mxCell>
+        <mxCell id="bth3" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" value="&lt;b&gt;系统识别&lt;br&gt;（结合监督情绪）&lt;br&gt;意图修正&lt;/b&gt;" vertex="1">
+          <mxGeometry height="50" width="160" x="420" y="286" as="geometry" />
+        </mxCell>
+        <mxCell id="bth4" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" value="&lt;b&gt;系统响应&lt;/b&gt;" vertex="1">
+          <mxGeometry height="30" width="140" x="640" y="296" as="geometry" />
+        </mxCell>
+        <mxCell id="r4_p" parent="1" style="shape=speech;whiteSpace=wrap;html=1;strokeColor=#b3b3b3;fillColor=#ffffff;verticalAlign=middle;align=center;fontSize=15;" value="你做得可真好啊" vertex="1">
+          <mxGeometry height="50" width="130" x="150" y="351" as="geometry" />
+        </mxCell>
+        <mxCell id="r4_e" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ff4d4d;strokeColor=none;align=center;fontSize=15;" value="&lt;font color=&quot;#ffffff&quot;&gt;&lt;b&gt;&amp;gt;_&amp;lt;&lt;/b&gt;&lt;br&gt;&lt;span&gt;愤怒&lt;/span&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="50" x="325" y="351" as="geometry" />
+        </mxCell>
+        <mxCell id="r4_sys" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fbeee6;strokeColor=#b3b3b3;fontSize=15;" value="系统识别：&lt;br&gt;&lt;b&gt;情绪发泄&lt;/b&gt;" vertex="1">
+          <mxGeometry height="50" width="120" x="440" y="351" as="geometry" />
+        </mxCell>
+        <mxCell id="r4_res" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;fontSize=15;" value="我理解您很生气，&lt;br&gt;我们可以一起看看&lt;br&gt;怎么解决" vertex="1">
+          <mxGeometry height="60" width="160" x="620" y="346" as="geometry" />
+        </mxCell>
+        <mxCell id="r4_y" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" value="&lt;b&gt;&lt;font color=&quot;#27ae60&quot;&gt;✓&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#27ae60&quot;&gt;意图理解&lt;br&gt;正确&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="70" x="790" y="341" as="geometry" />
+        </mxCell>
+        <mxCell id="r5_p" parent="1" style="shape=speech;whiteSpace=wrap;html=1;strokeColor=#b3b3b3;fillColor=#ffffff;verticalAlign=middle;align=center;fontSize=15;" value="你做得可真好啊" vertex="1">
+          <mxGeometry height="50" width="130" x="150" y="421" as="geometry" />
+        </mxCell>
+        <mxCell id="r5_e" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#5dade2;strokeColor=none;align=center;fontSize=15;" value="&lt;font color=&quot;#ffffff&quot;&gt;&lt;b&gt;:(&lt;/b&gt;&lt;br&gt;&lt;span&gt;悲伤&lt;/span&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="50" x="325" y="421" as="geometry" />
+        </mxCell>
+        <mxCell id="r5_sys" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fbeee6;strokeColor=#b3b3b3;fontSize=15;" value="系统识别：&lt;br&gt;&lt;b&gt;求助信号&lt;/b&gt;" vertex="1">
+          <mxGeometry height="50" width="120" x="440" y="421" as="geometry" />
+        </mxCell>
+        <mxCell id="r5_res" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;fontSize=15;" value="听起来您有些难过，&lt;br&gt;需要聊聊吗？" vertex="1">
+          <mxGeometry height="60" width="160" x="620" y="416" as="geometry" />
+        </mxCell>
+        <mxCell id="r5_y" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" value="&lt;b&gt;&lt;font color=&quot;#27ae60&quot;&gt;✓&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#27ae60&quot;&gt;意图理解&lt;br&gt;正确&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="70" x="790" y="411" as="geometry" />
+        </mxCell>
+        <mxCell id="r6_p" parent="1" style="shape=speech;whiteSpace=wrap;html=1;strokeColor=#b3b3b3;fillColor=#ffffff;verticalAlign=middle;align=center;fontSize=15;" value="你做得可真好啊" vertex="1">
+          <mxGeometry height="50" width="130" x="150" y="491" as="geometry" />
+        </mxCell>
+        <mxCell id="r6_e" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#cccccc;strokeColor=none;align=center;fontSize=15;" value="&lt;font color=&quot;#333333&quot;&gt;&lt;b&gt;:|&lt;/b&gt;&lt;br&gt;&lt;span&gt;中性&lt;/span&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="50" x="325" y="491" as="geometry" />
+        </mxCell>
+        <mxCell id="r6_sys" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fbeee6;strokeColor=#b3b3b3;fontSize=15;" value="系统识别：&lt;br&gt;&lt;b&gt;正面反馈&lt;/b&gt;" vertex="1">
+          <mxGeometry height="50" width="120" x="440" y="491" as="geometry" />
+        </mxCell>
+        <mxCell id="r6_res" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;fontSize=15;" value="谢谢！&lt;br&gt;很高兴能帮助您" vertex="1">
+          <mxGeometry height="60" width="160" x="620" y="486" as="geometry" />
+        </mxCell>
+        <mxCell id="r6_y" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" value="&lt;b&gt;&lt;font color=&quot;#27ae60&quot;&gt;✓&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#27ae60&quot;&gt;意图理解&lt;br&gt;正确&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="70" x="790" y="481" as="geometry" />
+        </mxCell>
+        <mxCell id="bl4_1" edge="1" parent="1" source="r4_p" style="fontSize=15;" target="r4_e">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bl4_2" edge="1" parent="1" source="r4_e" style="fontSize=15;" target="r4_sys">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bl4_3" edge="1" parent="1" source="r4_sys" style="fontSize=15;" target="r4_res">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bl5_1" edge="1" parent="1" source="r5_p" style="fontSize=15;" target="r5_e">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bl5_2" edge="1" parent="1" source="r5_e" style="fontSize=15;" target="r5_sys">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bl5_3" edge="1" parent="1" source="r5_sys" style="fontSize=15;" target="r5_res">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bl6_1" edge="1" parent="1" source="r6_p" style="fontSize=15;" target="r6_e">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bl6_2" edge="1" parent="1" source="r6_e" style="fontSize=15;" target="r6_sys">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bl6_3" edge="1" parent="1" source="r6_sys" style="fontSize=15;" target="r6_res">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

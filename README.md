@@ -1,6 +1,6 @@
 # 情感感知驱动的说话人语音识别系统
 
-本项目面向说话人语音输入，联合完成自动语音识别（ASR）与语音情感识别（SER），并通过统一界面输出转写文本、情感类别、置信度与可视化结果。当前仓库以 Whisper 负责中英文转写，以 `CNN+BiLSTM+Attention` 作为项目早期的可解释探索路线，以 `Whisper + Transformer Emotion Head` 作为正式主线模型。需要说明的是，仓库当前不包含说话人身份验证或说话人分离模块，因此“说话人语音识别”在这里更准确地表示“面向说话人语音输入的识别与情感分析”。
+本项目面向说话人语音输入，联合完成自动语音识别（ASR）与语音情感识别（SER），并通过统一界面输出转写文本、情感类别、置信度与可视化结果。当前仓库以 Whisper 负责中英文转写，以 `CNN+BiLSTM+Attention` 作为项目早期的可解释探索路线，以 `Whisper + Normalization-Free Transformer Emotion Head` 作为正式主线模型。需要说明的是，仓库当前不包含说话人身份验证或说话人分离模块，因此“说话人语音识别”在这里更准确地表示“面向说话人语音输入的识别与情感分析”。
 
 ## 核心能力
 
@@ -75,7 +75,7 @@ bash scripts/run_notebook_tmux.sh notebooks/03_train_emotion.ipynb baseline_trai
 
 该路线默认输出 `checkpoints/best_emotion.pth` 和 `checkpoints/emotion_history.npz`，主要用于历史对照和可解释性验证。
 
-2. 如果训练正式主线模型 `Whisper + Transformer Emotion Head`，推荐直接使用脚本入口：
+2. 如果训练正式主线模型 `Whisper + Normalization-Free Transformer Emotion Head`，推荐直接使用脚本入口：
 
 ```bash
 bash scripts/train_shared_tmux.sh --session-name shared_audit -- --profile cpu_preflight --audit-only
@@ -126,7 +126,7 @@ jupyter lab notebooks/04_train_shared.ipynb
 
 ### 5. 推理与界面
 
-完成训练后，可以直接启动 Gradio 界面进行主线推理验证。界面默认仅展示正式主线模型 `Whisper + Transformer Emotion Head`；若需要恢复早期探索模型的对照入口，可在 `configs/config.yaml` 中把 `legacy.enabled` 改为 `true`。
+完成训练后，可以直接启动 Gradio 界面进行主线推理验证。界面默认仅展示正式主线模型 `Whisper + Normalization-Free Transformer Emotion Head`；若需要恢复早期探索模型的对照入口，可在 `configs/config.yaml` 中把 `legacy.enabled` 改为 `true`。
 
 ```bash
 python ui/app.py
@@ -139,31 +139,93 @@ python ui/app.py
 ### 系统架构图
 
 ```mermaid
-flowchart LR
-    subgraph Training[训练阶段]
-        A[多源情感语音数据] --> B[音频预处理]
-        B --> C[早期探索路线: Mel/MFCC 特征]
-        B --> D[主线路线: Whisper 在线编码或序列缓存]
-        C --> E[CNN+BiLSTM+Attention]
-        D --> F[Whisper + Transformer Emotion Head]
-        E --> G[best_emotion.pth]
-        F --> H[shared_transformer_head_*.pth]
+flowchart TB
+    subgraph D[数据协议层]
+        direction LR
+        D1[多语料接入<br/>RAVDESS / CASIA / TESS / ESD / EMODB / IEMOCAP] --> D2[标签统一<br/>happy / angry / sad / neutral / fear / surprise] --> D3[输入规范化<br/>统一采样率 · 统一时长 · 统一标签空间]
     end
 
-    subgraph Inference[推理阶段]
-        I[录音或上传音频] --> J[Gradio UI]
-        J --> K[EmotionAwareSpeechPipeline]
-        K --> L[Whisper ASR]
-        K --> M{SER 模型选择}
-        M --> N[早期探索模型]
-        M --> O[Whisper 主线模型]
-        L --> P[文本/语言/分段]
-        N --> Q[情感概率]
-        O --> Q
-        P --> R[结果融合与可视化]
-        Q --> R
+    subgraph T[模型训练层]
+        direction LR
+        subgraph T1[时序建模路线]
+            direction TB
+            B1[Mel / MFCC 特征] --> B2[CNN+BiLSTM+Attention] --> B3[best_emotion.pth]
+            B3 --> B4[用于结果对比与结构解释]
+        end
+
+        subgraph T2[预训练模型路线]
+            direction TB
+            M1[Whisper 共享声学表征] --> M2[Whisper + Normalization-Free Transformer Emotion Head] --> M3[主线权重<br/>paths.best_shared_model]
+            M3 --> M4[默认无归一化方案：Derf]
+        end
     end
+
+    subgraph I[部署推理层]
+        direction LR
+        I1[录音 / 本地音频文件] --> I2[统一规整]
+        I2 --> I3[Whisper ASR]
+        I2 --> I4[主线情感预测]
+        I3 --> O1[文本 / 语言 / 分段]
+        I4 --> O2[情感标签 / 概率分布]
+        O1 --> I5[结果融合与可视化]
+        O2 --> I5
+        I5 --> I6[图形界面展示]
+    end
+
+    D3 --> B1
+    D3 --> M1
+    M3 --> I4
 ```
+
+### 预处理与双路径特征流程图
+
+```mermaid
+flowchart TB
+    A[原始语音] --> B[统一规整入口]
+
+    subgraph C[公共预处理流程]
+        direction LR
+        C1[降噪] --> C2[静音切除] --> C3[长度过滤] --> C4[归一化] --> C5[定长裁剪<br/>16 kHz · 5 s]
+    end
+
+    B --> C1
+    C5 --> D{特征 / 编码路径}
+
+    subgraph E[CNN+BiLSTM+Attention 基线路径]
+        direction TB
+        E1[Mel 频谱<br/>128 维<br/>n_fft=2048 · hop_length=512]
+        E2[MFCC<br/>40 维<br/>n_fft=2048 · hop_length=512]
+        E3[融合为基线输入表示]
+        E4[CNN+BiLSTM+Attention]
+        E1 --> E3
+        E2 --> E3
+        E3 --> E4
+    end
+
+    subgraph F[Whisper 主线路径]
+        direction TB
+        F1[Whisper log-Mel 输入]
+        F2[实时编码<br/>live_encoder<br/>正式主线默认]
+        F3[缓存序列表示<br/>cached_sequence<br/>按截断有效帧长度构建]
+        F4[预训练 Whisper 编码器]
+        F5[高层时序表示]
+        F6[Transformer Emotion Head]
+        F7[任务头快速实验 / 消融分析]
+        F1 --> F2
+        F2 --> F4
+        F4 --> F5
+        F1 -.兼容分支.-> F3
+        F3 --> F5
+        F3 --> F7
+        F5 --> F6
+    end
+
+    D --> E1
+    D --> E2
+    D --> F1
+```
+
+其中 `live_encoder` 是当前正式协议下的默认实现路径，它直接基于统一规整后的五秒音频完成 Whisper 编码；`cached_sequence` 仅作为兼容分支服务于任务头快速实验与消融分析，虽然同样遵循统一输入协议，但并不替代正式主线所依赖的实时编码叙事。
 
 ### 推理时序图
 
@@ -192,9 +254,8 @@ sequenceDiagram
 ```text
 Emotion-perception-driven-speech-recognition-system/
 ├── README.md
-├── theory.md
 ├── requirements.txt
-├── configs/
+├── configs/                            # 统一管理音频参数、训练配置、模型超参数、运行 profile 和权重路径
 │   └── config.yaml
 ├── scripts/
 │   ├── evaluate_shared_ui_path.py
@@ -202,10 +263,10 @@ Emotion-perception-driven-speech-recognition-system/
 │   ├── run_notebook_tmux.sh
 │   ├── train_shared.py
 │   └── train_shared_tmux.sh
-├── models/
+├── models/                             # 保存早期探索路线与主线路线的核心实现，其中 `whisper_emotion.py` 集中维护 `DyT`、`Derf` 与 checkpoint 兼容逻辑
 │   ├── emotion_cnn_bilstm.py
 │   └── whisper_emotion.py
-├── preprocessing/
+├── preprocessing/                      # 负责原始音频整理、常规特征提取和 Whisper 训练数据准备
 │   ├── audio_preprocess.py
 │   ├── feature_extract.py
 │   └── whisper_feature_cache.py
@@ -219,35 +280,21 @@ Emotion-perception-driven-speech-recognition-system/
 │   ├── losses.py
 │   ├── split_utils.py
 │   └── visualization.py
-├── notebooks/
+├── notebooks/                          # 保留历史 notebook 与分析 notebook，其中 `03_train_emotion.ipynb` 仍用于早期探索路线，`04_train_shared.ipynb` 用于主线实验的结果分析与可视化
 │   ├── 01_data_exploration.ipynb
 │   ├── 02_feature_analysis.ipynb
 │   ├── 03_train_emotion.ipynb
 │   └── 04_train_shared.ipynb
-├── checkpoints/
+├── checkpoints/                        # 保存权重、训练历史、混淆矩阵、曲线图与实验摘要
 │   └── *.pth / *.npz / *.json / *.png
-├── logs/
-│   └── *.log (运行时生成)
-├── runs/
-│   └── *.executed.<timestamp>.ipynb (仅 notebook 后台执行时生成)
-└── data/
+├── figures/                            # 论文图表、答辩PPT
+│   └── *.drawio / *.png / *.xlsx / *.pptx
+└── data/                               # 所用数据集，raw/为原始数据集，其他文件夹为预处理之后的数据
     ├── raw/
     ├── processed/
     ├── features/
     └── features_shared/
 ```
-
-- `configs/` 统一管理音频参数、训练配置、模型超参数、运行 profile 和权重路径。
-- `scripts/train_shared.py` 是正式主线训练入口，负责数据策略过滤、主辅数据子集划分、训练、评估与实验摘要输出。
-- `scripts/train_shared_tmux.sh` 用于在 `tmux` 中后台执行正式主线训练脚本。
-- `scripts/run_notebook_tmux.sh` 与 `scripts/execute_notebook_live.py` 保留为历史 notebook 后台执行工具，主要服务于早期探索路线或旧实验复盘。
-- `scripts/evaluate_shared_ui_path.py` 用于按当前 UI 主线路径复核共享模型结果。
-- `models/` 保存早期探索路线与主线路线的核心实现，其中 `whisper_emotion.py` 集中维护 `DyT`、`Derf` 与 checkpoint 兼容逻辑。
-- `preprocessing/` 负责原始音频整理、常规特征提取和 Whisper 训练数据准备。
-- `utils/data_policy.py` 负责 `staged_clean` 标签策略、样本过滤与数据审计。
-- `notebooks/` 保留历史 notebook 与分析 notebook，其中 `03_train_emotion.ipynb` 仍用于早期探索路线，`04_train_shared.ipynb` 用于主线实验的结果分析与可视化。
-- `checkpoints/` 保存权重、训练历史、混淆矩阵、曲线图与实验摘要。
-- `logs/` 为脚本或 notebook 后台执行时自动生成的日志目录，`runs/` 仅在 notebook 后台执行时生成执行后的 notebook 文件。
 
 ## 运行注意事项
 

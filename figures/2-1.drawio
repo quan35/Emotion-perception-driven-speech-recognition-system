@@ -1,0 +1,188 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0">
+  <diagram id="whisper-architecture-fixed" name="Whisper Architecture Overview">
+    <mxGraphModel dx="926" dy="557" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="data_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#a0a0a0;strokeWidth=2;align=center;verticalAlign=top;fontFamily=Times New Roman;fontSize=16;" value="" vertex="1">
+          <mxGeometry height="470" width="340" x="30" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="data_title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontStyle=1;fontSize=16;fontColor=#000000;fontFamily=Times New Roman;" value="多任务训练数据(68万小时)" vertex="1">
+          <mxGeometry height="30" width="300" x="50" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t1_title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontStyle=0;fontSize=16;fontColor=#333333;fontFamily=Times New Roman;" value="English transcription" vertex="1">
+          <mxGeometry height="20" width="300" x="50" y="125" as="geometry" />
+        </mxCell>
+        <mxCell id="t1_audio" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontColor=#1a237e;fontFamily=Times New Roman;" value="🗣️ &quot;Ask not what your country can do for ...&quot;" vertex="1">
+          <mxGeometry height="20" width="300" x="50" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="t1_text" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontColor=#2e7d32;fontFamily=Times New Roman;" value="📝 Ask not what your country can do for ..." vertex="1">
+          <mxGeometry height="20" width="300" x="50" y="165" as="geometry" />
+        </mxCell>
+        <mxCell id="t2_title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontStyle=0;fontSize=16;fontColor=#333333;fontFamily=Times New Roman;" value="Any-to-English speech translation" vertex="1">
+          <mxGeometry height="20" width="300" x="50" y="215" as="geometry" />
+        </mxCell>
+        <mxCell id="t2_audio" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontColor=#1a237e;fontFamily=Times New Roman;" value="🗣️ &quot;El rápido zorro marrón salta sobre ...&quot;" vertex="1">
+          <mxGeometry height="20" width="300" x="50" y="235" as="geometry" />
+        </mxCell>
+        <mxCell id="t2_text" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontColor=#2e7d32;fontFamily=Times New Roman;" value="📝 The quick brown fox jumps over ..." vertex="1">
+          <mxGeometry height="20" width="300" x="50" y="255" as="geometry" />
+        </mxCell>
+        <mxCell id="t3_title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontStyle=0;fontSize=16;fontColor=#333333;fontFamily=Times New Roman;" value="Non-English transcription" vertex="1">
+          <mxGeometry height="20" width="300" x="50" y="305" as="geometry" />
+        </mxCell>
+        <mxCell id="t3_audio" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontColor=#1a237e;fontFamily=Times New Roman;" value="🗣️ &quot;언덕 위에 올라 내려다보면 너무나 넓고 넓은 ...&quot;" vertex="1">
+          <mxGeometry height="20" width="300" x="50" y="338" as="geometry" />
+        </mxCell>
+        <mxCell id="t3_text" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontColor=#2e7d32;fontFamily=Times New Roman;" value="📝 언덕 위에 올라 내려다보면 너무나 넓고 넓은 ..." vertex="1">
+          <mxGeometry height="20" width="300" x="50" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="t4_title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontStyle=0;fontSize=16;fontColor=#333333;fontFamily=Times New Roman;" value="No speech" vertex="1">
+          <mxGeometry height="20" width="300" x="50" y="433" as="geometry" />
+        </mxCell>
+        <mxCell id="t4_audio" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontColor=#1a237e;fontFamily=Times New Roman;" value="🎵 (background music playing)" vertex="1">
+          <mxGeometry height="20" width="300" x="50" y="453" as="geometry" />
+        </mxCell>
+        <mxCell id="t4_text" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontColor=#2e7d32;fontFamily=Times New Roman;" value="📝 ∅" vertex="1">
+          <mxGeometry height="20" width="300" x="50" y="473" as="geometry" />
+        </mxCell>
+        <mxCell id="big_arrow" parent="1" style="shape=singleArrow;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;arrowWidth=0.4;arrowSize=0.4;fontFamily=Times New Roman;fontSize=16;" value="" vertex="1">
+          <mxGeometry height="50" width="80" x="380" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="seq_label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontStyle=1;fontSize=16;fontColor=#000000;fontFamily=Times New Roman;" value="序列到序列学习" vertex="1">
+          <mxGeometry height="30" width="300" x="450" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="spectrogram" parent="1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#23496d;strokeColor=#1c3a57;fontColor=#ffffff;fontStyle=1;align=center;fontFamily=Times New Roman;fontSize=16;" value="对数梅尔声学谱图" vertex="1">
+          <mxGeometry height="40" width="170" x="515" y="495" as="geometry" />
+        </mxCell>
+        <mxCell id="conv1d" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#8e24aa;fontColor=#4a148c;fontStyle=1;fontSize=16;fontFamily=Times New Roman;" value="2 × Conv1D + GELU" vertex="1">
+          <mxGeometry height="40" width="160" x="520" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="enc_plus" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#000000;fontSize=16;fontStyle=1;align=center;fontFamily=Times New Roman;" value="＋" vertex="1">
+          <mxGeometry height="30" width="30" x="585" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="enc_pe" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=16;align=center;fontFamily=Times New Roman;" value="正弦位置编码" vertex="1">
+          <mxGeometry height="80" width="80" x="460" y="325" as="geometry" />
+        </mxCell>
+        <mxCell id="encoder_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f7fa;strokeColor=#00838f;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=16;" value="" vertex="1">
+          <mxGeometry height="210" width="140" x="530" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="encoder_title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontColor=#006064;fontStyle=1;fontFamily=Times New Roman;" value="Transformer&lt;br&gt;&lt;div style=&quot;text-align: center;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 96, 100), rgb(107, 189, 193));&quot;&gt;编码器模块&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="110" x="410" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="enc_l1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#00b8d4;fontSize=16;align=center;fontFamily=Times New Roman;" value="MLP&lt;br&gt;self attention" vertex="1">
+          <mxGeometry height="40" width="110" x="545" y="125" as="geometry" />
+        </mxCell>
+        <mxCell id="enc_dots" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;fontFamily=Times New Roman;" value="⋮" vertex="1">
+          <mxGeometry height="20" width="40" x="580" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="enc_l2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#00b8d4;fontSize=16;align=center;fontFamily=Times New Roman;" value="MLP&lt;br&gt;self attention" vertex="1">
+          <mxGeometry height="40" width="110" x="545" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="enc_l3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#00b8d4;fontSize=16;align=center;fontFamily=Times New Roman;" value="MLP&lt;br&gt;self attention" vertex="1">
+          <mxGeometry height="40" width="110" x="545" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="e_line1" edge="1" parent="1" source="spectrogram" style="endArrow=classic;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=16;" target="conv1d" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_line2" edge="1" parent="1" source="conv1d" style="endArrow=classic;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=16;" target="enc_plus" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_line3" edge="1" parent="1" source="enc_pe" style="endArrow=classic;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=16;" target="enc_plus" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_line4" edge="1" parent="1" source="enc_plus" style="endArrow=classic;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=16;" target="encoder_box" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tok_sot" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#fb8c00;fontSize=16;fontStyle=1;align=center;fontFamily=Times New Roman;" value="SOT" vertex="1">
+          <mxGeometry height="30" width="40" x="770" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="tok_en" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#fb8c00;fontSize=16;fontStyle=1;align=center;fontFamily=Times New Roman;" value="EN" vertex="1">
+          <mxGeometry height="30" width="35" x="810" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="tok_trans" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#fb8c00;fontSize=13;fontStyle=1;align=center;fontFamily=Times New Roman;" value="TRANS-&lt;br&gt;CRIBE" vertex="1">
+          <mxGeometry height="30" width="60" x="845" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="tok_time" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#4caf50;fontSize=16;fontStyle=1;align=center;fontFamily=Times New Roman;" value="0.0" vertex="1">
+          <mxGeometry height="30" width="35" x="905" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="tok_word1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#2196f3;fontSize=16;align=center;fontFamily=Times New Roman;" value="The" vertex="1">
+          <mxGeometry height="30" width="40" x="940" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="tok_word2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#2196f3;fontSize=16;align=center;fontFamily=Times New Roman;" value="quick" vertex="1">
+          <mxGeometry height="30" width="45" x="980" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="tok_dots" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;fontFamily=Times New Roman;" value="..." vertex="1">
+          <mxGeometry height="30" width="30" x="1025" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="tok_label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontFamily=Times New Roman;" value="多任务训练格式的 Token" vertex="1">
+          <mxGeometry height="20" width="260" x="770" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="dec_plus" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#000000;fontSize=16;fontStyle=1;align=center;fontFamily=Times New Roman;" value="＋" vertex="1">
+          <mxGeometry height="30" width="30" x="890" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="dec_pe" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffffff;strokeColor=#333333;fontSize=16;align=center;fontFamily=Times New Roman;" value="可学习的位置编码" vertex="1">
+          <mxGeometry height="80" width="110" x="985" y="395" as="geometry" />
+        </mxCell>
+        <mxCell id="decoder_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=16;" value="" vertex="1">
+          <mxGeometry height="270" width="140" x="835" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="decoder_title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontColor=#b71c1c;fontStyle=1;fontFamily=Times New Roman;" value="Transformer&lt;br&gt;解码器模块" vertex="1">
+          <mxGeometry height="40" width="110" x="990" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="dec_l1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ef5350;fontSize=15;align=center;fontFamily=Times New Roman;" value="MLP&lt;br&gt;cross attention&lt;br&gt;self attention" vertex="1">
+          <mxGeometry height="50" width="110" x="850" y="125" as="geometry" />
+        </mxCell>
+        <mxCell id="dec_dots" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;fontFamily=Times New Roman;" value="⋮" vertex="1">
+          <mxGeometry height="20" width="40" x="885" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="dec_l2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ef5350;fontSize=15;align=center;fontFamily=Times New Roman;" value="MLP&lt;br&gt;cross attention&lt;br&gt;self attention" vertex="1">
+          <mxGeometry height="50" width="110" x="850" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="dec_l3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ef5350;fontSize=15;align=center;fontFamily=Times New Roman;" value="MLP&lt;br&gt;cross attention&lt;br&gt;self attention" vertex="1">
+          <mxGeometry height="50" width="110" x="850" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="cross_att_link" edge="1" parent="1" source="encoder_box" style="endArrow=classic;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;strokeWidth=1.5;fontColor=#424242;fontSize=16;labelBackgroundColor=#ffffff;fontFamily=Times New Roman;entryX=0.036;entryY=0.396;entryDx=0;entryDy=0;entryPerimeter=0;" target="decoder_box" value="交叉注意力联结">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="820" y="217" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d_line1" edge="1" parent="1" style="endArrow=classic;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=16;" target="dec_plus" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="905" y="500" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d_line2" edge="1" parent="1" source="dec_pe" style="endArrow=classic;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=16;" target="dec_plus" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d_line3" edge="1" parent="1" source="dec_plus" style="endArrow=classic;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=16;" target="decoder_box" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pred_line" edge="1" parent="1" source="decoder_box" style="endArrow=classic;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;strokeWidth=1.5;fontSize=11;fontColor=#424242;" value="next-token&lt;br&gt;prediction">
+          <mxGeometry height="50" relative="1" width="50" as="geometry" />
+        </mxCell>
+        <mxCell id="out_en" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#fb8c00;fontSize=16;fontStyle=1;align=center;fontFamily=Times New Roman;" value="EN" vertex="1">
+          <mxGeometry height="30" width="35" x="785" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="out_trans" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#fb8c00;fontSize=13;fontStyle=1;align=center;fontFamily=Times New Roman;" value="TRANS-&lt;br&gt;CRIBE" vertex="1">
+          <mxGeometry height="30" width="55" x="820" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="out_time" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#4caf50;fontSize=16;fontStyle=1;align=center;fontFamily=Times New Roman;" value="0.0" vertex="1">
+          <mxGeometry height="30" width="35" x="875" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="out_word1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#2196f3;fontSize=16;align=center;fontFamily=Times New Roman;" value="The" vertex="1">
+          <mxGeometry height="30" width="35" x="910" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="out_word2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#2196f3;fontSize=16;align=center;fontFamily=Times New Roman;" value="quick" vertex="1">
+          <mxGeometry height="30" width="40" x="945" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="out_word3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#2196f3;fontSize=16;align=center;fontFamily=Times New Roman;" value="brown" vertex="1">
+          <mxGeometry height="30" width="45" x="985" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="out_dots" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;fontFamily=Times New Roman;" value="..." vertex="1">
+          <mxGeometry height="30" width="30" x="1030" y="50" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

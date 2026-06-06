@@ -1,0 +1,68 @@
+<mxfile host="app.diagrams.net" agent="Python">
+  <diagram name="Fig4-4 Attention Pooling" id="diagram1">
+    <mxGraphModel dx="926" dy="557" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d1d5db;fontSize=15;fontColor=#111827;verticalAlign=top;" value="&lt;div style=&quot;background: rgb(219, 234, 254); padding: 4px 8px; font-weight: bold; color: rgb(30, 64, 175); border-radius: 6px 6px 0px 0px; margin: -1px -1px 0px;&quot;&gt;帧级表示序列&lt;/div&gt;&lt;div style=&quot;padding: 4px 8px 0px; color: rgb(107, 114, 128);&quot;&gt;B×T×768&lt;/div&gt;" vertex="1">
+          <mxGeometry height="72" width="155" x="20" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d1d5db;fontSize=15;fontColor=#111827;verticalAlign=top;" value="&lt;div style=&quot;background: rgb(243, 244, 246); padding: 4px 8px; font-weight: bold; color: rgb(17, 24, 39); border-radius: 6px 6px 0px 0px; margin: -1px -1px 0px;&quot;&gt;评分网络&lt;/div&gt;&lt;div style=&quot;padding: 4px 8px 0px; color: rgb(107, 114, 128);&quot;&gt;Linear→256→Tanh&lt;br&gt;→Linear→1&lt;/div&gt;" vertex="1">
+          <mxGeometry height="72" width="155" x="210" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#f59e0b;fontSize=15;fontColor=#92400e;align=center;fontStyle=1;" value="时间维 Softmax" vertex="1">
+          <mxGeometry height="56" width="120" x="400" y="68" as="geometry" />
+        </mxCell>
+        <mxCell id="5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff7ed;strokeColor=#f59e0b;fontSize=13;fontColor=#92400e;align=center;" value="" vertex="1">
+          <mxGeometry height="72" width="150" x="555" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontColor=#111827;fontSize=10;fontColor=#92400e;align=center;" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;注意力权重&lt;br&gt;关键帧更高&lt;br&gt;普通帧更低&lt;/font&gt;" vertex="1">
+          <mxGeometry height="48" width="140" x="560" y="72" as="geometry" />
+        </mxCell>
+        <mxCell id="7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#86efac;fontSize=15;fontColor=#166534;align=center;fontStyle=1;" value="加权求和" vertex="1">
+          <mxGeometry height="56" width="120" x="740" y="68" as="geometry" />
+        </mxCell>
+        <mxCell id="8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#16a34a;fontSize=15;fontColor=#111827;verticalAlign=top;" value="&lt;div style=&quot;background: rgb(220, 252, 231); padding: 4px 8px; font-weight: bold; color: rgb(22, 101, 52); border-radius: 6px 6px 0px 0px; margin: -1px -1px 0px;&quot;&gt;句级向量&lt;/div&gt;&lt;div style=&quot;padding: 4px 8px 0px; color: rgb(107, 114, 128);&quot;&gt;B×768&lt;/div&gt;" vertex="1">
+          <mxGeometry height="72" width="150" x="895" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d1d5db;fontSize=15;fontColor=#111827;verticalAlign=top;" value="&lt;div style=&quot;background: rgb(237, 233, 254); padding: 4px 8px; font-weight: bold; color: rgb(107, 33, 168); border-radius: 6px 6px 0px 0px; margin: -1px -1px 0px;&quot;&gt;分类器&lt;/div&gt;&lt;div style=&quot;padding: 4px 8px 0px; color: rgb(107, 114, 128);&quot;&gt;768→256→6&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="150" x="895" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9fafb;strokeColor=#d1d5db;dashed=1;dashPattern=4 3;fontSize=15;fontColor=#9ca3af;align=center;" value="平均池化对照&lt;br&gt;(各帧等权)" vertex="1">
+          <mxGeometry height="44" width="120" x="660" y="225" as="geometry" />
+        </mxCell>
+        <mxCell id="11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9fafb;strokeColor=#d1d5db;dashed=1;dashPattern=4 3;fontSize=15;fontColor=#9ca3af;align=center;" value="平均池化句级向量" vertex="1">
+          <mxGeometry height="34" width="150" x="895" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="12" edge="1" parent="1" source="2" style="edgeStyle=orthogonalEdgeStyle;endArrow=classic;strokeWidth=1.5;strokeColor=#2563eb;fontSize=13;" target="3" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="13" edge="1" parent="1" source="3" style="edgeStyle=orthogonalEdgeStyle;endArrow=classic;strokeWidth=1.5;strokeColor=#2563eb;fontSize=13;" target="4" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="14" edge="1" parent="1" source="4" style="edgeStyle=orthogonalEdgeStyle;endArrow=classic;strokeWidth=1.5;strokeColor=#2563eb;fontSize=13;" target="5" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="15" edge="1" parent="1" source="5" style="edgeStyle=orthogonalEdgeStyle;endArrow=classic;strokeWidth=1.5;strokeColor=#2563eb;fontSize=13;" target="7" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="16" edge="1" parent="1" source="7" style="edgeStyle=orthogonalEdgeStyle;endArrow=classic;strokeWidth=1.5;strokeColor=#2563eb;fontSize=13;" target="8" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="17" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;endArrow=classic;strokeWidth=1.5;strokeColor=#2563eb;fontSize=13;" target="9" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="18" edge="1" parent="1" source="2" style="edgeStyle=orthogonalEdgeStyle;endArrow=classic;strokeWidth=1.2;strokeColor=#9ca3af;dashed=1;dashPattern=5 3;fontSize=13;" target="10" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="97" y="247" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="19" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;endArrow=classic;strokeWidth=1.2;strokeColor=#9ca3af;dashed=1;dashPattern=5 3;fontSize=13;" target="11" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
